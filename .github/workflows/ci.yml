@@ -348,7 +348,9 @@ jobs:
                   "wasm": true,
                   "cmultilib": true,
                   "release": true,
-                  "enabled": level >= 2,
+                  "enabled": true,
+                  // Secondary until WASM builds become stable
+                  "secondary": true,
                   "cross": true,
                   "shell": "bash -euxo pipefail {0}",
                   // Just a few selected tests because wasm is slow
