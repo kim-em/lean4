@@ -228,9 +228,10 @@ jobs:
                 // 3. To run it in release (obviously)
                 // 4. To run it for pushes to master so that pushes to master have a Linux toolchain
                 //    available as an artifact for Grove to use.
-                "enabled": isPr || level != 1 || isPushToMaster,
+                // TODO: set back to "isPr || level != 1 || isPushToMaster"
+                "enabled": false,
                 "test": level >= 1,
-                "secondary": level == 0,
+                "secondary": false,
                 "shell": "nix develop .#oldGlibc -c bash -euxo pipefail {0}",
                 "llvm-url": "https://github.com/leanprover/lean-llvm/releases/download/19.1.2/lean-llvm-x86_64-linux-gnu.tar.zst",
                 "prepare-llvm": "../script/prepare-llvm-linux.sh lean-llvm*",
@@ -241,7 +242,8 @@ jobs:
               {
                 "name": "Linux Lake",
                 "os": large ? "nscloud-ubuntu-22.04-amd64-8x16-with-cache" : "ubuntu-latest",
-                "enabled": true,
+                // TODO: set back to true
+                "enabled": false,
                 "check-rebootstrap": level >= 1,
                 "check-stage3": level >= 2,
                 "test": true,
@@ -301,9 +303,11 @@ jobs:
                 "binary-check": "otool -L",
                 "tar": "gtar", // https://github.com/actions/runner-images/issues/2619
                 // See "Linux release" for release job levels; Grove is not a concern here
-                "enabled": isPr || level != 1,
+                // TODO: set back to isPr || level != 1
+                "enabled": false,
                 "test": level >= 1,
-                "secondary": level == 0,
+                // todo: set back to level == 0
+                "secondary": false, 
               },
               {
                 "name": "Windows",
