@@ -94,14 +94,15 @@ jobs:
           version: 4.0.22 # https://github.com/emscripten-core/emscripten/blob/main/ChangeLog.md#4022---121825
           actions-cache-folder: emsdk
         if: matrix.wasm
-      - name: Install 32bit c libs & set pkg-config path for i386 libs
+      - name: Install 32bit c libs & create pkg-config wrapper for i386
         # apt-get installs 32 bit libs to `/usr/lib/i386-linux-gnu/pkgconfig/libuv.pc`
         # but pkg-config tries to read from the default location `/usr/lib/pkgconfig/libuv.pc`
+        # We create a wrapper script that sets PKG_CONFIG_LIBDIR to the 32-bit path
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo apt-get install -y gcc-multilib g++-multilib ccache libuv1-dev:i386 pkgconf:i386
-          echo 'PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig exec pkg-config "$@"' | sudo tee /usr/bin/i386-linux-gnu-pkg-config > /dev/null
+          printf '#!/bin/sh\nPKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig exec pkg-config "$@"\n' | sudo tee /usr/bin/i386-linux-gnu-pkg-config > /dev/null
           sudo chmod +x /usr/bin/i386-linux-gnu-pkg-config
         if: matrix.cmultilib
       - name: Restore Cache
@@ -136,6 +137,7 @@ jobs:
             echo "TARGET_STAGE=stage1" >> $GITHUB_ENV
           fi
       - name: Build
+        timeout-minutes: 120
         run: |
           ulimit -c unlimited  # coredumps
           [ -d build ] || mkdir build
