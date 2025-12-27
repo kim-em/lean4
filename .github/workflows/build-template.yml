@@ -94,16 +94,11 @@ jobs:
           version: 4.0.22 # https://github.com/emscripten-core/emscripten/blob/main/ChangeLog.md#4022---121825
           actions-cache-folder: emsdk
         if: matrix.wasm
-      - name: Install 32bit c libs & create pkg-config wrapper for i386
-        # apt-get installs 32 bit libs to `/usr/lib/i386-linux-gnu/pkgconfig/libuv.pc`
-        # but pkg-config tries to read from the default location `/usr/lib/pkgconfig/libuv.pc`
-        # We create a wrapper script that sets PKG_CONFIG_LIBDIR to the 32-bit path
+      - name: Install 32bit c libs
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo apt-get install -y gcc-multilib g++-multilib ccache libuv1-dev:i386 pkgconf:i386
-          printf '#!/bin/sh\nPKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig exec pkg-config "$@"\n' | sudo tee /usr/bin/i386-linux-gnu-pkg-config > /dev/null
-          sudo chmod +x /usr/bin/i386-linux-gnu-pkg-config
         if: matrix.cmultilib
       - name: Restore Cache
         id: restore-cache
@@ -141,16 +136,14 @@ jobs:
         run: |
           ulimit -c unlimited  # coredumps
           
-          # Debug: test pkg-config wrapper if it exists
-          if [[ -x /usr/bin/i386-linux-gnu-pkg-config ]]; then
-            echo "=== Testing i386 pkg-config wrapper ==="
-            echo "Wrapper contents:"
-            cat /usr/bin/i386-linux-gnu-pkg-config
-            echo ""
-            echo "Testing wrapper with --version:"
-            timeout 5 /usr/bin/i386-linux-gnu-pkg-config --version || echo "pkg-config --version timed out or failed"
-            echo "Testing wrapper with libuv:"
-            timeout 5 /usr/bin/i386-linux-gnu-pkg-config --libs libuv || echo "pkg-config libuv failed (expected if not found)"
+          # For 32-bit cross-compilation, tell pkg-config where to find 32-bit .pc files
+          # Only set this for cmultilib builds - don't set to empty string as that breaks pkg-config
+          if [[ -n '${{ matrix.cmultilib }}' ]]; then
+            export PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig
+            echo "=== Testing pkg-config with PKG_CONFIG_LIBDIR ==="
+            echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
+            pkg-config --version || echo "pkg-config --version failed"
+            pkg-config --libs libuv || echo "pkg-config libuv failed"
             echo "=== End pkg-config test ==="
           fi
           
