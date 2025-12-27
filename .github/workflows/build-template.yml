@@ -137,9 +137,23 @@ jobs:
             echo "TARGET_STAGE=stage1" >> $GITHUB_ENV
           fi
       - name: Build
-        timeout-minutes: 120
+        timeout-minutes: 30
         run: |
           ulimit -c unlimited  # coredumps
+          
+          # Debug: test pkg-config wrapper if it exists
+          if [[ -x /usr/bin/i386-linux-gnu-pkg-config ]]; then
+            echo "=== Testing i386 pkg-config wrapper ==="
+            echo "Wrapper contents:"
+            cat /usr/bin/i386-linux-gnu-pkg-config
+            echo ""
+            echo "Testing wrapper with --version:"
+            timeout 5 /usr/bin/i386-linux-gnu-pkg-config --version || echo "pkg-config --version timed out or failed"
+            echo "Testing wrapper with libuv:"
+            timeout 5 /usr/bin/i386-linux-gnu-pkg-config --libs libuv || echo "pkg-config libuv failed (expected if not found)"
+            echo "=== End pkg-config test ==="
+          fi
+          
           [ -d build ] || mkdir build
           cd build
           # arguments passed to `cmake`
