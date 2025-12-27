@@ -136,15 +136,18 @@ jobs:
         run: |
           ulimit -c unlimited  # coredumps
           
-          # For 32-bit cross-compilation, tell pkg-config where to find 32-bit .pc files
-          # Only set this for cmultilib builds - don't set to empty string as that breaks pkg-config
+          # For 32-bit cross-compilation (e.g., Web Assembly), configure pkg-config
+          # to find 32-bit libraries instead of the default 64-bit ones.
+          #
+          # We verify libuv is findable since it's a required dependency and cmake's
+          # FindLibUV.cmake uses pkg-config to locate it.
           if [[ -n '${{ matrix.cmultilib }}' ]]; then
             export PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig
-            echo "=== Testing pkg-config with PKG_CONFIG_LIBDIR ==="
             echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
-            pkg-config --version || echo "pkg-config --version failed"
-            pkg-config --libs libuv || echo "pkg-config libuv failed"
-            echo "=== End pkg-config test ==="
+            if ! pkg-config --exists libuv; then
+              echo "::error::[32-bit cross-compilation] pkg-config could not find required dependency 'libuv'."
+              exit 1
+            fi
           fi
           
           [ -d build ] || mkdir build
