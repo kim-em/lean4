@@ -132,7 +132,7 @@ jobs:
             echo "TARGET_STAGE=stage1" >> $GITHUB_ENV
           fi
       - name: Build
-        timeout-minutes: 30
+        timeout-minutes: ${{ matrix.build-timeout || 360 }}
         run: |
           ulimit -c unlimited  # coredumps
           
