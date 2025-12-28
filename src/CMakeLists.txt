@@ -138,7 +138,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     # From https://emscripten.org/docs/compiling/WebAssembly.html#backends:
     # > The simple and safe thing is to pass all -s flags at both compile and link time.
     set(EMSCRIPTEN_SETTINGS "-sALLOW_MEMORY_GROWTH=1 -fwasm-exceptions -pthread -flto")
-    string(APPEND LEANC_EXTRA_CC_FLAGS " -pthread")
+    string(APPEND LEANC_EXTRA_CC_FLAGS " ${EMSCRIPTEN_SETTINGS}")
     string(APPEND LEAN_EXTRA_CXX_FLAGS " -D LEAN_EMSCRIPTEN ${EMSCRIPTEN_SETTINGS}")
     string(APPEND LEAN_EXTRA_LINKER_FLAGS " ${EMSCRIPTEN_SETTINGS}")
 endif()
