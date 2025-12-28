@@ -137,7 +137,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 
     # From https://emscripten.org/docs/compiling/WebAssembly.html#backends:
     # > The simple and safe thing is to pass all -s flags at both compile and link time.
-    # https://emscripten.org/docs/optimizing/Optimizing-Code.html#memory-growth
     set(EMSCRIPTEN_SETTINGS "-sALLOW_MEMORY_GROWTH=1 -fwasm-exceptions -pthread -flto")
     string(APPEND LEANC_EXTRA_CC_FLAGS " -pthread")
     string(APPEND LEAN_EXTRA_CXX_FLAGS " -D LEAN_EMSCRIPTEN ${EMSCRIPTEN_SETTINGS}")
@@ -774,8 +773,14 @@ endif()
 
 # use Bash version for building, use Lean version in bin/ for tests & distribution
 configure_file("${LEAN_SOURCE_DIR}/bin/leanc.in" "${CMAKE_BINARY_DIR}/leanc.sh" @ONLY)
-if(${STAGE} GREATER 0 AND EXISTS ${LEAN_SOURCE_DIR}/Leanc.lean AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+
+# Copy Leanc.lean source so Lake can build the Leanc library (needed for all platforms)
+if(${STAGE} GREATER 0 AND EXISTS ${LEAN_SOURCE_DIR}/Leanc.lean)
   configure_file("${LEAN_SOURCE_DIR}/Leanc.lean" "${CMAKE_BINARY_DIR}/leanc/Leanc.lean" @ONLY)
+endif()
+
+# Build the leanc binary (not needed for Emscripten because it uses emcc directly)
+if(${STAGE} GREATER 0 AND EXISTS ${LEAN_SOURCE_DIR}/Leanc.lean AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
   add_custom_target(leanc ALL
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/leanc
     DEPENDS leanshared
