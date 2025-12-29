@@ -367,6 +367,11 @@ jobs:
                 // `USE_LAKE` is not compatible with `prepare-llvm` currently
                 job["CMAKE_OPTIONS"] = (job["CMAKE_OPTIONS"] ? job["CMAKE_OPTIONS"] + " " : "") + "-DUSE_LAKE=OFF";
               }
+              if (job["cmultilib"]) {
+                // `USE_LAKE` is not compatible with `cmultilib` (32bit cross-compilation, WebaAssembly) currently
+                // Lake gets compiler flags from the lean binary (previous stage), which doesn't necessary Emscripten flags
+                job["CMAKE_OPTIONS"] = (job["CMAKE_OPTIONS"] ? job["CMAKE_OPTIONS"] + " " : "") + "-DUSE_LAKE=OFF";
+              }
             }
             console.log(`matrix:\n${JSON.stringify(matrix, null, 2)}`);
             matrix = matrix.filter((job) => job["enabled"]);
