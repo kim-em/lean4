@@ -873,6 +873,14 @@ else()
   set(CMAKE_BUILD_TYPE_TOML "Release")
 endif()
 
+# For Emscripten cross-compilation, Lake needs to know the extra compiler flags
+# since it gets its default flags from the lean binary (which is from the previous stage)
+# We do this because we need the "-pthreads" flag in Emscripten, otherwise the build fails.
+if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+  toml_escape("${EMSCRIPTEN_SETTINGS}" EMSCRIPTEN_SETTINGS_TOML)
+  set(LEAN_EXTRA_LAKEFILE_TOML "moreLeancArgs = [${EMSCRIPTEN_SETTINGS_TOML}]")
+endif()
+
 if(USE_LAKE)
   configure_file(${LEAN_SOURCE_DIR}/lakefile.toml.in ${CMAKE_BINARY_DIR}/lakefile.toml)
   # copy for editing
