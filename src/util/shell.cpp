@@ -302,9 +302,24 @@ extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
         } else {
             // Browser environment: use MEMFS (Emscripten's default in-memory filesystem)
             // Create necessary directories if they don't exist
-            try { FS.mkdir("/home"); } catch (e) { console.log("Error creating /home directory: " + e); }
-            try { FS.mkdir("/tmp"); } catch (e) { console.log("Error creating /tmp directory: " + e); }
-            try { FS.mkdir("/workspace"); } catch (e) { console.log("Error creating /workspace directory: " + e); }
+            // Note: /home, /tmp, /dev, /proc are often pre-created by Emscripten
+            function mkdirSafe(path) {
+                try { FS.mkdir(path); }
+                catch (e) {
+                    if (e.errno !== 20) { // 20 = EEXIST, ignore if already exists
+                        console.log("Error creating " + path + ": " + (e.message || e));
+                    }
+                }
+            }
+            
+            mkdirSafe("/home");
+            mkdirSafe("/tmp");
+            mkdirSafe("/workspace");
+            mkdirSafe("/bin");  // For fake app path "/bin/lean.wasm"
+            mkdirSafe("/lib");
+            mkdirSafe("/lib/lean");
+            mkdirSafe("/lib/lean/library");
+            
             FS.chdir("/workspace");
             
             // Set default LEAN_PATH for browser if not already configured
