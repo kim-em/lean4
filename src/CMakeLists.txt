@@ -130,14 +130,15 @@ endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     # TODO(WN): code size/performance tradeoffs
-    # - we're using -O3; it's /okay/ (-Oz produces quite slow code)
+    # - we're using -O3; it's /okay/ (param "-03" is set in LEANC_FLAGS)
+    # - "-Oz" produces quite slow code
     # - system libraries such as OpenGL are included in the JS but shouldn't be
     # - we need EMSCRIPTEN_KEEPALIVE annotations on exports to run meta-dce (-s MAIN_MODULE=2)
     # - we disable "-flto" because it uses too much memory (we would need more RAM in the CI runner)
 
     # From https://emscripten.org/docs/compiling/WebAssembly.html#backends:
     # > The simple and safe thing is to pass all -s flags at both compile and link time.
-    set(EMSCRIPTEN_SETTINGS "-sALLOW_MEMORY_GROWTH=1 -fwasm-exceptions -pthread -v")
+    set(EMSCRIPTEN_SETTINGS "-sALLOW_MEMORY_GROWTH=1 -fwasm-exceptions -pthread")
     string(APPEND LEANC_EXTRA_CC_FLAGS " ${EMSCRIPTEN_SETTINGS}")
     string(APPEND LEAN_EXTRA_CXX_FLAGS " -D LEAN_EMSCRIPTEN ${EMSCRIPTEN_SETTINGS}")
     string(APPEND LEAN_EXTRA_LINKER_FLAGS " ${EMSCRIPTEN_SETTINGS}")

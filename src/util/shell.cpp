@@ -282,22 +282,41 @@ static void report_task_get_blocked_time(std::chrono::nanoseconds d) {
 
 extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
 #ifdef LEAN_EMSCRIPTEN
-    // When running in command-line mode under Node.js, we make system directories available in the virtual filesystem.
-    // This mode is used to compile 32-bit oleans.
+    // Set up the virtual filesystem based on the runtime environment.
+    // Node.js: Use NODEFS to access the real filesystem.
+    // Browser: Use MEMFS (default) with pre-created directories.
     EM_ASM(
-        if ((typeof process === "undefined") || (process.release.name !== "node")) {
-            throw new Error("The Lean command-line driver can only run under Node.js. For the embeddable WASM library, see lean_wasm.cpp.");
+        var isNode = (typeof process !== "undefined") && 
+                     (process.release && process.release.name === "node");
+        
+        if (isNode) {
+            // Node.js environment: mount real filesystem
+            var lean_path = process.env["LEAN_PATH"];
+            if (lean_path) {
+                ENV["LEAN_PATH"] = lean_path;
+            }
+            // We cannot mount /, see https://github.com/emscripten-core/emscripten/issues/2040
+            FS.mount(NODEFS, { root: "/home" }, "/home");
+            FS.mount(NODEFS, { root: "/tmp" }, "/tmp");
+            FS.chdir(process.cwd());
+        } else {
+            // Browser environment: use MEMFS (Emscripten's default in-memory filesystem)
+            // Create necessary directories if they don't exist
+            try { FS.mkdir("/home"); } catch (e) { console.log("Error creating /home directory: " + e); }
+            try { FS.mkdir("/tmp"); } catch (e) { console.log("Error creating /tmp directory: " + e); }
+            try { FS.mkdir("/workspace"); } catch (e) { console.log("Error creating /workspace directory: " + e); }
+            FS.chdir("/workspace");
+            
+            // Set default LEAN_PATH for browser if not already configured
+            // The standard library .olean files should be preloaded at this path
+            if (!ENV["LEAN_PATH"]) {
+                ENV["LEAN_PATH"] = "/lib/lean/library";
+            }
+            
+            console.log("Lean 4 WASM running in browser mode");
+            console.log("LEAN_PATH:", ENV["LEAN_PATH"]);
+            console.log("Working directory:", FS.cwd());
         }
-
-        var lean_path = process.env["LEAN_PATH"];
-        if (lean_path) {
-            ENV["LEAN_PATH"] = lean_path;
-        }
-
-        // We cannot mount /, see https://github.com/emscripten-core/emscripten/issues/2040
-        FS.mount(NODEFS, { root: "/home" }, "/home");
-        FS.mount(NODEFS, { root: "/tmp" }, "/tmp");
-        FS.chdir(process.cwd());
     );
 #elif defined(LEAN_WINDOWS)
     // "best practice" according to https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-seterrormode
