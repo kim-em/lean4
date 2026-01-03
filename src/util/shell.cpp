@@ -314,7 +314,7 @@ extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
             // Note: /home, /tmp, /dev, /proc are often pre-created by Emscripten
             function mkdirSafe(path) {
                 try { FS.mkdir(path); }
-                catch (e) {q
+                catch (e) {
                     if (e.errno !== 20) { // 20 = EEXIST, ignore if already exists
                         console.log("Error creating " + path + ": " + (e.message || e));
                     }
