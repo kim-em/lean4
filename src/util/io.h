@@ -41,7 +41,7 @@ inline void consume_io_result(object * o) {
 #if defined(LEAN_EMSCRIPTEN)
         EM_ASM({
             console.log("[DEBUG:IO_ERROR] IO result error: " + UTF8ToString($0));
-        }, error.c_str());
+        }, error.data());
 #endif
         // #endregion
         throw exception(error.to_std_string());
