@@ -51,6 +51,16 @@ void notify_assertion_violation(const char * fileName, int line, const char * co
     std::cerr << "Line: " << line << "\n";
     std::cerr << condition << "\n";
     std::cerr.flush();
+    // #region agent log
+#if defined(LEAN_EMSCRIPTEN)
+    EM_ASM({
+        console.log("[DEBUG:ASSERT] ASSERTION VIOLATION:");
+        console.log("[DEBUG:ASSERT] File: " + UTF8ToString($0));
+        console.log("[DEBUG:ASSERT] Line: " + $1);
+        console.log("[DEBUG:ASSERT] Condition: " + UTF8ToString($2));
+    }, fileName, line, condition);
+#endif
+    // #endregion
 }
 
 void enable_debug(char const * tag) {

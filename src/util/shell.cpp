@@ -282,6 +282,15 @@ static void report_task_get_blocked_time(std::chrono::nanoseconds d) {
 
 extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
 #ifdef LEAN_EMSCRIPTEN
+    // #region agent log
+    EM_ASM({
+        console.log("[DEBUG:A] lean_main entered, argc=" + $0);
+        for (var i = 0; i < $0; i++) {
+            var argPtr = HEAPU32[($1 >> 2) + i];
+            console.log("[DEBUG:A] argv[" + i + "]=" + UTF8ToString(argPtr));
+        }
+    }, argc, argv);
+    // #endregion
     // Set up the virtual filesystem based on the runtime environment.
     // Node.js: Use NODEFS to access the real filesystem.
     // Browser: Use MEMFS (default) with pre-created directories.
@@ -305,7 +314,7 @@ extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
             // Note: /home, /tmp, /dev, /proc are often pre-created by Emscripten
             function mkdirSafe(path) {
                 try { FS.mkdir(path); }
-                catch (e) {
+                catch (e) {q
                     if (e.errno !== 20) { // 20 = EEXIST, ignore if already exists
                         console.log("Error creating " + path + ": " + (e.message || e));
                     }
@@ -331,6 +340,28 @@ extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
             console.log("Lean 4 WASM running in browser mode");
             console.log("LEAN_PATH:", ENV["LEAN_PATH"]);
             console.log("Working directory:", FS.cwd());
+            // #region agent log
+            // Debug: List files in LEAN_PATH to verify .olean files are present
+            try {
+                var leanPath = ENV["LEAN_PATH"] || "/lib/lean/library";
+                console.log("[DEBUG:B] Checking for .olean files in LEAN_PATH:", leanPath);
+                try {
+                    var files = FS.readdir(leanPath);
+                    console.log("[DEBUG:B] Files in " + leanPath + ":", JSON.stringify(files.slice(0, 10)));
+                } catch(e) {
+                    console.log("[DEBUG:B] ERROR: Cannot read LEAN_PATH directory:", e.message);
+                }
+                // Check for Init.olean specifically
+                try {
+                    var stat = FS.stat(leanPath + "/Init.olean");
+                    console.log("[DEBUG:B] Init.olean exists, size:", stat.size);
+                } catch(e) {
+                    console.log("[DEBUG:B] ERROR: Init.olean not found:", e.message);
+                }
+            } catch(e) {
+                console.log("[DEBUG:B] LEAN_PATH check failed:", e.message);
+            }
+            // #endregion
         }
     );
 #elif defined(LEAN_WINDOWS)
@@ -340,25 +371,70 @@ extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
     // see https://github.com/leanprover/lean4/issues/4291
     SetConsoleOutputCP(CP_UTF8);
 #endif
+    // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+    EM_ASM({ console.log("[DEBUG:C] About to create lean::initializer"); });
+#endif
+    // #endregion
     auto init_start = std::chrono::steady_clock::now();
     lean::initializer init;
     second_duration init_time = std::chrono::steady_clock::now() - init_start;
+    // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+    EM_ASM({ console.log("[DEBUG:C] lean::initializer completed successfully"); });
+#endif
+    // #endregion
 
     try {
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({ console.log("[DEBUG:D] About to call init_search_path()"); });
+#endif
+        // #endregion
         // Remark: This currently runs under `IO.initializing = true`.
         init_search_path();
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({ console.log("[DEBUG:D] init_search_path() completed successfully"); });
+#endif
+        // #endregion
     } catch (lean::throwable & ex) {
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({ console.log("[DEBUG:D] init_search_path() threw exception"); });
+#endif
+        // #endregion
         std::cerr << "error: " << ex.what() << std::endl;
         return 1;
     }
     consume_io_result(lean_enable_initializer_execution());
+    // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+    EM_ASM({ console.log("[DEBUG:E] lean_enable_initializer_execution completed"); });
+#endif
+    // #endregion
 
     int rc;
     object_ref shell_opts;
     try {
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({ console.log("[DEBUG:E] Creating shell options"); });
+#endif
+        // #endregion
         shell_opts = mk_shell_options();
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({ console.log("[DEBUG:E] Shell options created, processing command line"); });
+#endif
+        // #endregion
         for (;;) {
             int c = getopt_long(argc, argv, g_opt_str, g_long_options, NULL);
+            // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+            EM_ASM({ console.log("[DEBUG:E] getopt_long returned: " + $0); }, c);
+#endif
+            // #endregion
             if (c == -1)
                 break; // end of command line
             if (process_shell_option(shell_opts, c, optarg, rc))
@@ -367,10 +443,20 @@ extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
                 break; // stop consuming arguments after `--run`
         }
     } catch (lean::throwable & ex) {
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({ console.log("[DEBUG:E] Exception during option processing"); });
+#endif
+        // #endregion
         std::cerr << "error: " << ex.what() << std::endl;
         return 1;
     }
 
+    // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+    EM_ASM({ console.log("[DEBUG:E] About to call io_mark_end_initialization"); });
+#endif
+    // #endregion
     lean::io_mark_end_initialization();
 
     if (get_shell_profiler(shell_opts)) {
@@ -378,13 +464,38 @@ extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
         report_profiling_time("initialization", init_time);
     }
 
+    // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+    EM_ASM({ console.log("[DEBUG:E] Creating scoped_task_manager"); });
+#endif
+    // #endregion
     scoped_task_manager scope_task_man(get_shell_num_threads(shell_opts));
+    // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+    EM_ASM({ console.log("[DEBUG:E] scoped_task_manager created"); });
+#endif
+    // #endregion
 
     try {
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({ console.log("[DEBUG:E] About to call run_shell_main with argc=" + $0); }, argc - optind);
+#endif
+        // #endregion
         return run_shell_main(argc - optind, argv + optind, shell_opts);
     } catch (lean::throwable & ex) {
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({ console.log("[DEBUG:E] run_shell_main threw lean::throwable"); });
+#endif
+        // #endregion
         std::cerr << ex.what() << "\n";
     } catch (std::bad_alloc & ex) {
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({ console.log("[DEBUG:E] run_shell_main threw bad_alloc"); });
+#endif
+        // #endregion
         std::cerr << "out of memory" << std::endl;
     }
     return 1;
