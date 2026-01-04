@@ -102,19 +102,25 @@ The system root can be obtained via `getBuildDir` (for internal use) or
 `findSysroot` (for external users). -/
 def initSearchPath (leanSysroot : FilePath) (sp : SearchPath := ∅) : IO Unit := do
   let sp := sp ++ (← addSearchPathFromEnv (← getBuiltinSearchPath leanSysroot))
+  IO.eprintln s!"[DEBUG:P] initSearchPath: leanSysroot = {leanSysroot}"
+  IO.eprintln s!"[DEBUG:P] initSearchPath: final searchPath = {sp}"
   searchPathRef.set sp
 
 @[export lean_init_search_path]
 private def initSearchPathInternal : IO Unit := do
+  IO.eprintln "[DEBUG:P] initSearchPathInternal called"
   initSearchPath (← getBuildDir)
 
 /-- Find the compiled `.olean` of a module in the `LEAN_PATH` search path. -/
 partial def findOLean (mod : Name) : IO FilePath := do
   let sp ← searchPathRef.get
+  IO.eprintln s!"[DEBUG:O] findOLean: mod = {mod}, searchPath = {sp}"
   if let some fname ← sp.findWithExt "olean" mod then
+    IO.eprintln s!"[DEBUG:O] findOLean: found {fname}"
     return fname
   else
     let pkg := FilePath.mk <| mod.getRoot.toString (escape := false)
+    IO.eprintln s!"[DEBUG:O] findOLean: NOT FOUND for {mod}"
     throw <| IO.userError s!"unknown module prefix '{pkg}'\n\n\
       No directory '{pkg}' or file '{pkg}.olean' in the search path entries:\n\
       {"\n".intercalate <| sp.map (·.toString)}"

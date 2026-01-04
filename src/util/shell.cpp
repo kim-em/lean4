@@ -208,15 +208,28 @@ static char const * g_opt_str =
 namespace lean {
 extern "C" obj_res lean_shell_main(obj_arg args, obj_arg shell_opts);
 int run_shell_main(int argc, char* argv[], object_ref const & shell_opts) {
+    // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+    EM_ASM({ console.log("[DEBUG:G] run_shell_main entered, building args list"); });
+#endif
+    // #endregion
     list_ref<string_ref> args;
     while (argc > 0) {
         argc--;
         args = list_ref<string_ref>(string_ref(argv[argc]), args);
     }
-    return get_io_scalar_result<uint32>(lean_shell_main(
-        args.steal(),
-        shell_opts.to_obj_arg()
-    ));
+    // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+    EM_ASM({ console.log("[DEBUG:G] Args list built, calling lean_shell_main..."); });
+#endif
+    // #endregion
+    object * result = lean_shell_main(args.steal(), shell_opts.to_obj_arg());
+    // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+    EM_ASM({ console.log("[DEBUG:G] lean_shell_main returned, processing result..."); });
+#endif
+    // #endregion
+    return get_io_scalar_result<uint32>(result);
 }
 
 extern "C" object* lean_init_search_path();
