@@ -2,6 +2,12 @@
 // Module: Lean.Server
 // Imports: public import Lean.Server.Watchdog public import Lean.Server.FileWorker public import Lean.Server.Rpc public import Lean.Server.CodeActions public import Lean.Server.Test public import Lean.Server.ProtocolOverview
 #include <lean/lean.h>
+#if defined(LEAN_EMSCRIPTEN)
+#include <emscripten.h>
+#define LEAN_SERVER_INIT_LOG(msg) EM_ASM({ console.log("[INIT:Server] " + UTF8ToString($0)); }, msg)
+#else
+#define LEAN_SERVER_INIT_LOG(msg) ((void)0)
+#endif
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #pragma clang diagnostic ignored "-Wunused-label"
@@ -24,24 +30,31 @@ LEAN_EXPORT lean_object* initialize_Lean_Server(uint8_t builtin) {
 lean_object * res;
 if (_G_initialized) return lean_io_result_mk_ok(lean_box(0));
 _G_initialized = true;
+LEAN_SERVER_INIT_LOG("Initializing Server.Watchdog...");
 res = initialize_Lean_Server_Watchdog(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
+LEAN_SERVER_INIT_LOG("Initializing Server.FileWorker...");
 res = initialize_Lean_Server_FileWorker(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
+LEAN_SERVER_INIT_LOG("Initializing Server.Rpc...");
 res = initialize_Lean_Server_Rpc(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
+LEAN_SERVER_INIT_LOG("Initializing Server.CodeActions...");
 res = initialize_Lean_Server_CodeActions(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
+LEAN_SERVER_INIT_LOG("Initializing Server.Test...");
 res = initialize_Lean_Server_Test(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
+LEAN_SERVER_INIT_LOG("Initializing Server.ProtocolOverview...");
 res = initialize_Lean_Server_ProtocolOverview(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
+LEAN_SERVER_INIT_LOG("All Server modules initialized!");
 return lean_io_result_mk_ok(lean_box(0));
 }
 #ifdef __cplusplus
