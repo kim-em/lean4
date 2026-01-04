@@ -480,23 +480,61 @@ extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
         // #region agent log
 #ifdef LEAN_EMSCRIPTEN
         EM_ASM({ console.log("[DEBUG:E] About to call run_shell_main with argc=" + $0); }, argc - optind);
+        // Log the arguments being passed to shell_main
+        for (int i = optind; i < argc; i++) {
+            EM_ASM({
+                console.log("[DEBUG:F] shell_main arg[" + $0 + "]=" + UTF8ToString($1));
+            }, i - optind, argv[i]);
+        }
+        // Check if input file exists
+        EM_ASM({
+            var inputFile = UTF8ToString($0);
+            console.log("[DEBUG:F] Checking if input file exists: " + inputFile);
+            try {
+                var stat = FS.stat(inputFile);
+                console.log("[DEBUG:F] Input file exists, size: " + stat.size + " bytes");
+                // Try to read first 100 chars
+                var content = FS.readFile(inputFile, { encoding: 'utf8' });
+                console.log("[DEBUG:F] Input file content (first 200 chars): " + content.substring(0, 200));
+            } catch(e) {
+                console.log("[DEBUG:F] ERROR: Input file does not exist or cannot be read: " + e.message);
+            }
+        }, argv[optind]);
 #endif
         // #endregion
         return run_shell_main(argc - optind, argv + optind, shell_opts);
     } catch (lean::throwable & ex) {
         // #region agent log
 #ifdef LEAN_EMSCRIPTEN
-        EM_ASM({ console.log("[DEBUG:E] run_shell_main threw lean::throwable"); });
+        EM_ASM({
+            console.log("[DEBUG:F] run_shell_main threw lean::throwable: " + UTF8ToString($0));
+        }, ex.what());
 #endif
         // #endregion
         std::cerr << ex.what() << "\n";
     } catch (std::bad_alloc & ex) {
         // #region agent log
 #ifdef LEAN_EMSCRIPTEN
-        EM_ASM({ console.log("[DEBUG:E] run_shell_main threw bad_alloc"); });
+        EM_ASM({ console.log("[DEBUG:F] run_shell_main threw bad_alloc"); });
 #endif
         // #endregion
         std::cerr << "out of memory" << std::endl;
+    } catch (std::exception & ex) {
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({
+            console.log("[DEBUG:F] run_shell_main threw std::exception: " + UTF8ToString($0));
+        }, ex.what());
+#endif
+        // #endregion
+        std::cerr << "exception: " << ex.what() << std::endl;
+    } catch (...) {
+        // #region agent log
+#ifdef LEAN_EMSCRIPTEN
+        EM_ASM({ console.log("[DEBUG:F] run_shell_main threw unknown exception"); });
+#endif
+        // #endregion
+        std::cerr << "unknown exception" << std::endl;
     }
     return 1;
 }
