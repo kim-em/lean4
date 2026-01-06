@@ -687,7 +687,15 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
   # in this file.
   # PTHREAD_POOL_SIZE=4 creates a pool of 4 workers for thread spawning
   # This generates lean.worker.js alongside lean.js
-  string(APPEND LEAN_EXE_LINKER_FLAGS " ${LIB}/temp/libleanshell.a ${TOOLCHAIN_STATIC_LINKER_FLAGS} ${EMSCRIPTEN_SETTINGS} -lnodefs.js -s EXIT_RUNTIME=1 -s MAIN_MODULE=1 -s LINKABLE=1 -s EXPORT_ALL=1 -s ERROR_ON_UNDEFINED_SYMBOLS=0 -sPTHREAD_POOL_SIZE=4")
+  #
+  # Note: MAIN_MODULE=1 + EXPORT_ALL=1 cause >200k exports which exceeds V8's
+  # WebAssembly limit of 100k exports. We use MAIN_MODULE=2 which only exports
+  # explicitly marked functions, avoiding the export limit issue.
+  string(APPEND LEAN_EXE_LINKER_FLAGS " ${LIB}/temp/libleanshell.a ${TOOLCHAIN_STATIC_LINKER_FLAGS} ${EMSCRIPTEN_SETTINGS} -lnodefs.js -sEXIT_RUNTIME=1 -sMAIN_MODULE=2 -sERROR_ON_UNDEFINED_SYMBOLS=0 -sPTHREAD_POOL_SIZE=4")
+  # We need -O1 at link time to skip wasm-opt post-processing which crashes with
+  # "popping from empty stack" on this large WASM module. EMSCRIPTEN_FINAL_OPTS
+  # is applied AFTER LEANC_OPTS (which has -O3) so it overrides to -O1.
+  set(EMSCRIPTEN_FINAL_OPTS "-O1")
 endif()
 
 # Build the compiler using the bootstrapped C sources for stage0, and use
@@ -854,6 +862,10 @@ endif()
 
 # Escape for `make`. Yes, twice.
 string(REPLACE "$" "\\\$$" CMAKE_EXE_LINKER_FLAGS_MAKE "${CMAKE_EXE_LINKER_FLAGS}")
+# EMSCRIPTEN_FINAL_OPTS is set by the Emscripten block above; default to empty for non-Emscripten
+if(NOT DEFINED EMSCRIPTEN_FINAL_OPTS)
+  set(EMSCRIPTEN_FINAL_OPTS "")
+endif()
 configure_file(${LEAN_SOURCE_DIR}/stdlib.make.in ${CMAKE_BINARY_DIR}/stdlib.make)
 
 # hacky
