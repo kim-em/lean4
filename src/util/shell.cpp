@@ -320,7 +320,15 @@ extern "C" LEAN_EXPORT int lean_main(int argc, char ** argv) {
             // We cannot mount /, see https://github.com/emscripten-core/emscripten/issues/2040
             FS.mount(NODEFS, { root: "/home" }, "/home");
             FS.mount(NODEFS, { root: "/tmp" }, "/tmp");
-            FS.chdir(process.cwd());
+            // On macOS, /tmp is a symlink to /private/tmp, but process.cwd()
+            // returns the resolved path. Normalize it for the WASM VFS.
+            var cwd = process.cwd();
+            if (cwd.startsWith("/private/tmp/")) {
+                cwd = cwd.replace("/private/tmp/", "/tmp/");
+            } else if (cwd === "/private/tmp") {
+                cwd = "/tmp";
+            }
+            FS.chdir(cwd);
         } else {
             // Browser environment: use MEMFS (Emscripten's default in-memory filesystem)
             // Create necessary directories if they don't exist
