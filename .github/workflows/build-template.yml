@@ -135,7 +135,14 @@ jobs:
         timeout-minutes: ${{ matrix.build-timeout || 360 }}
         run: |
           ulimit -c unlimited  # coredumps
-          
+
+          # Increase Node.js heap size for Emscripten's acorn-optimizer when building WASM.
+          # The lean.js file is very large (~90MB) and the optimizer runs out of memory
+          # with the default heap size. See: https://github.com/emscripten-core/emscripten/issues/24558
+          if [[ -n '${{ matrix.wasm }}' ]]; then
+            export NODE_OPTIONS="--max-old-space-size=8192"
+          fi
+
           # For 32-bit cross-compilation (e.g., Web Assembly), configure pkg-config
           # to find 32-bit libraries instead of the default 64-bit ones.
           #
@@ -205,6 +212,10 @@ jobs:
           key: ${{ steps.restore-cache.outputs.cache-primary-key }}
       - name: Install
         run: |
+          # Increase Node.js heap size for Emscripten's acorn-optimizer when building WASM.
+          if [[ -n '${{ matrix.wasm }}' ]]; then
+            export NODE_OPTIONS="--max-old-space-size=8192"
+          fi
           make -C build/$TARGET_STAGE install
       - name: Check Binaries
         run: ${{ matrix.binary-check }} lean-*/bin/* || true
