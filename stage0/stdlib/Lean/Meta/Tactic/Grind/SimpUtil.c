@@ -4792,7 +4792,7 @@ v_reusejp_1479_:
 uint64_t v___x_1481_; uint64_t v___x_1482_; uint64_t v___x_1483_; uint64_t v___x_1484_; uint64_t v___x_1485_; uint64_t v_key_1486_; lean_object* v___x_1487_; lean_object* v___x_1488_; lean_object* v___x_1489_; 
 lean_ctor_set_uint8(v_config_1480_, 9, v___x_1478_);
 v___x_1481_ = l_Lean_Meta_Context_configKey(v___y_1426_);
-v___x_1482_ = 2ULL;
+v___x_1482_ = 3ULL;
 v___x_1483_ = lean_uint64_shift_right(v___x_1481_, v___x_1482_);
 v___x_1484_ = lean_uint64_shift_left(v___x_1483_, v___x_1482_);
 v___x_1485_ = lean_uint64_once(&l_Lean_Meta_Grind_reduceCtorEqCheap___lam__0___closed__0, &l_Lean_Meta_Grind_reduceCtorEqCheap___lam__0___closed__0_once, _init_l_Lean_Meta_Grind_reduceCtorEqCheap___lam__0___closed__0);
@@ -6493,8 +6493,8 @@ lean_object* v_a_2105_; uint8_t v_zetaDelta_2106_; uint8_t v_zeta_2107_; lean_ob
 v_a_2105_ = lean_ctor_get(v___x_2104_, 0);
 lean_inc(v_a_2105_);
 lean_dec_ref(v___x_2104_);
-v_zetaDelta_2106_ = lean_ctor_get_uint8(v_config_2096_, sizeof(void*)*11 + 19);
-v_zeta_2107_ = lean_ctor_get_uint8(v_config_2096_, sizeof(void*)*11 + 20);
+v_zetaDelta_2106_ = lean_ctor_get_uint8(v_config_2096_, sizeof(void*)*12 + 19);
+v_zeta_2107_ = lean_ctor_get_uint8(v_config_2096_, sizeof(void*)*12 + 20);
 v___x_2108_ = lean_unsigned_to_nat(100000u);
 v___x_2109_ = lean_unsigned_to_nat(2u);
 v___x_2110_ = 0;

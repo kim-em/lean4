@@ -809,7 +809,7 @@ v_reusejp_174_:
 uint64_t v___x_176_; uint64_t v___x_177_; uint64_t v___x_178_; uint64_t v___x_179_; uint64_t v___x_180_; uint64_t v_key_181_; lean_object* v___x_182_; lean_object* v___x_183_; lean_object* v___x_184_; 
 lean_ctor_set_uint8(v_config_175_, 9, v___y_141_);
 v___x_176_ = l_Lean_Meta_Context_configKey(v_a_135_);
-v___x_177_ = 2ULL;
+v___x_177_ = 3ULL;
 v___x_178_ = lean_uint64_shift_right(v___x_176_, v___x_177_);
 v___x_179_ = lean_uint64_shift_left(v___x_178_, v___x_177_);
 v___x_180_ = l_Lean_Meta_TransparencyMode_toUInt64(v___y_141_);

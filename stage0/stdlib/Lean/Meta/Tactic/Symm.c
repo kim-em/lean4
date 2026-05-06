@@ -1,6 +1,6 @@
 // Lean compiler output
 // Module: Lean.Meta.Tactic.Symm
-// Imports: public import Lean.Meta.Reduce public import Lean.Meta.Tactic.Assert public import Lean.Meta.DiscrTree.Main import Lean.Meta.AppBuilder
+// Imports: public import Lean.Meta.Reduce public import Lean.Meta.Tactic.Replace public import Lean.Meta.DiscrTree.Main import Lean.Meta.AppBuilder
 #include <lean/lean.h>
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -117,7 +117,7 @@ uint8_t lean_usize_dec_eq(size_t, size_t);
 lean_object* l___private_Lean_Meta_Basic_0__Lean_Meta_withMVarContextImp(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 uint64_t l_Lean_instHashableMVarId_hash(lean_object*);
 lean_object* l_Lean_Expr_fvar___override(lean_object*);
-lean_object* l_Lean_MVarId_replace(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
+lean_object* l_Lean_MVarId_replace(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_Lean_MVarId_getType(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_Lean_Expr_cleanupAnnotations(lean_object*);
 lean_object* l_Lean_MVarId_getTag(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
@@ -3210,7 +3210,7 @@ v_reusejp_1059_:
 uint64_t v___x_1061_; uint64_t v___x_1062_; uint64_t v___x_1063_; uint64_t v___x_1064_; uint64_t v___x_1065_; uint64_t v_key_1066_; lean_object* v___x_1067_; lean_object* v___x_1068_; lean_object* v___x_1069_; 
 lean_ctor_set_uint8(v_config_1060_, 9, v___x_1058_);
 v___x_1061_ = l_Lean_Meta_Context_configKey(v___x_1015_);
-v___x_1062_ = 2ULL;
+v___x_1062_ = 3ULL;
 v___x_1063_ = lean_uint64_shift_right(v___x_1061_, v___x_1062_);
 v___x_1064_ = lean_uint64_shift_left(v___x_1063_, v___x_1062_);
 v___x_1065_ = lean_uint64_once(&l___private_Lean_Meta_Tactic_Symm_0__Lean_Meta_Symm_initFn___lam__0___closed__7_00___x40_Lean_Meta_Tactic_Symm_3447505512____hygCtx___hyg_2_, &l___private_Lean_Meta_Tactic_Symm_0__Lean_Meta_Symm_initFn___lam__0___closed__7_00___x40_Lean_Meta_Tactic_Symm_3447505512____hygCtx___hyg_2__once, _init_l___private_Lean_Meta_Tactic_Symm_0__Lean_Meta_Symm_initFn___lam__0___closed__7_00___x40_Lean_Meta_Tactic_Symm_3447505512____hygCtx___hyg_2_);
@@ -4389,7 +4389,7 @@ v_reusejp_1576_:
 uint64_t v___x_1578_; uint64_t v___x_1579_; uint64_t v___x_1580_; lean_object* v___x_1581_; uint8_t v___x_1582_; uint64_t v___x_1583_; uint64_t v___x_1584_; uint64_t v_key_1585_; lean_object* v___x_1586_; lean_object* v___x_1587_; lean_object* v___x_1588_; 
 lean_ctor_set_uint8(v_config_1577_, 9, v___x_1575_);
 v___x_1578_ = l_Lean_Meta_Context_configKey(v___y_1506_);
-v___x_1579_ = 2ULL;
+v___x_1579_ = 3ULL;
 v___x_1580_ = lean_uint64_shift_right(v___x_1578_, v___x_1579_);
 v___x_1581_ = lean_box(0);
 v___x_1582_ = 0;
@@ -5872,7 +5872,7 @@ v_reusejp_1989_:
 uint64_t v___x_1991_; uint64_t v___x_1992_; uint64_t v___x_1993_; lean_object* v___x_1994_; uint8_t v___x_1995_; uint64_t v___x_1996_; uint64_t v___x_1997_; uint64_t v_key_1998_; lean_object* v___x_1999_; lean_object* v___x_2000_; lean_object* v___x_2001_; 
 lean_ctor_set_uint8(v_config_1990_, 9, v___x_1988_);
 v___x_1991_ = l_Lean_Meta_Context_configKey(v___y_1923_);
-v___x_1992_ = 2ULL;
+v___x_1992_ = 3ULL;
 v___x_1993_ = lean_uint64_shift_right(v___x_1991_, v___x_1992_);
 v___x_1994_ = lean_box(0);
 v___x_1995_ = 0;
@@ -6867,7 +6867,7 @@ v_a_2249_ = lean_ctor_get(v___x_2248_, 0);
 lean_inc(v_a_2249_);
 lean_dec_ref(v___x_2248_);
 v___x_2250_ = lean_box(0);
-v___x_2251_ = l_Lean_MVarId_replace(v_g_2241_, v_h_2240_, v_a_2249_, v___x_2250_, v_a_2242_, v_a_2243_, v_a_2244_, v_a_2245_);
+v___x_2251_ = l_Lean_MVarId_replace(v_g_2241_, v_h_2240_, v_a_2249_, v___x_2250_, v___x_2250_, v_a_2242_, v_a_2243_, v_a_2244_, v_a_2245_);
 if (lean_obj_tag(v___x_2251_) == 0)
 {
 lean_object* v_a_2252_; lean_object* v___x_2254_; uint8_t v_isShared_2255_; uint8_t v_isSharedCheck_2260_; 
@@ -8975,7 +8975,7 @@ return v_res_2946_;
 }
 }
 lean_object* runtime_initialize_Lean_Meta_Reduce(uint8_t builtin);
-lean_object* runtime_initialize_Lean_Meta_Tactic_Assert(uint8_t builtin);
+lean_object* runtime_initialize_Lean_Meta_Tactic_Replace(uint8_t builtin);
 lean_object* runtime_initialize_Lean_Meta_DiscrTree_Main(uint8_t builtin);
 lean_object* runtime_initialize_Lean_Meta_AppBuilder(uint8_t builtin);
 static bool _G_runtime_initialized = false;
@@ -8986,7 +8986,7 @@ _G_runtime_initialized = true;
 res = runtime_initialize_Lean_Meta_Reduce(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
-res = runtime_initialize_Lean_Meta_Tactic_Assert(builtin);
+res = runtime_initialize_Lean_Meta_Tactic_Replace(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 res = runtime_initialize_Lean_Meta_DiscrTree_Main(builtin);
@@ -9016,7 +9016,7 @@ _G_meta_initialized = true;
 return lean_io_result_mk_ok(lean_box(0));
 }
 lean_object* initialize_Lean_Meta_Reduce(uint8_t builtin);
-lean_object* initialize_Lean_Meta_Tactic_Assert(uint8_t builtin);
+lean_object* initialize_Lean_Meta_Tactic_Replace(uint8_t builtin);
 lean_object* initialize_Lean_Meta_DiscrTree_Main(uint8_t builtin);
 lean_object* initialize_Lean_Meta_AppBuilder(uint8_t builtin);
 static bool _G_initialized = false;
@@ -9027,7 +9027,7 @@ _G_initialized = true;
 res = initialize_Lean_Meta_Reduce(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
-res = initialize_Lean_Meta_Tactic_Assert(builtin);
+res = initialize_Lean_Meta_Tactic_Replace(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 res = initialize_Lean_Meta_DiscrTree_Main(builtin);

@@ -808,7 +808,7 @@ _start:
 lean_object* v___x_7_; lean_object* v___x_8_; lean_object* v___x_9_; lean_object* v___x_10_; lean_object* v___x_11_; lean_object* v___x_12_; 
 v___x_7_ = ((lean_object*)(l___private_Init_While_0__Lean_Loop_forIn_loop___at___00Lean_Meta_Monotonicity_headBetaUnderLambda_spec__1___closed__2));
 v___x_8_ = lean_unsigned_to_nat(19u);
-v___x_9_ = lean_unsigned_to_nat(1913u);
+v___x_9_ = lean_unsigned_to_nat(1922u);
 v___x_10_ = ((lean_object*)(l___private_Init_While_0__Lean_Loop_forIn_loop___at___00Lean_Meta_Monotonicity_headBetaUnderLambda_spec__1___closed__1));
 v___x_11_ = ((lean_object*)(l___private_Init_While_0__Lean_Loop_forIn_loop___at___00Lean_Meta_Monotonicity_headBetaUnderLambda_spec__1___closed__0));
 v___x_12_ = l_mkPanicMessageWithDecl(v___x_11_, v___x_10_, v___x_9_, v___x_8_, v___x_7_);
@@ -3009,7 +3009,7 @@ v_reusejp_912_:
 uint64_t v___x_914_; uint64_t v___x_915_; uint64_t v___x_916_; uint8_t v___x_917_; uint64_t v___x_918_; uint64_t v___x_919_; uint64_t v_key_920_; lean_object* v___x_921_; lean_object* v___x_922_; lean_object* v___x_923_; 
 lean_ctor_set_uint8(v_config_913_, 9, v___x_911_);
 v___x_914_ = l_Lean_Meta_Context_configKey(v___y_874_);
-v___x_915_ = 2ULL;
+v___x_915_ = 3ULL;
 v___x_916_ = lean_uint64_shift_right(v___x_914_, v___x_915_);
 v___x_917_ = 0;
 v___x_918_ = lean_uint64_shift_left(v___x_916_, v___x_915_);
@@ -4011,7 +4011,7 @@ v_reusejp_1310_:
 uint64_t v___x_1312_; uint64_t v___x_1313_; uint64_t v___x_1314_; uint64_t v___x_1315_; uint64_t v___x_1316_; uint64_t v_key_1317_; lean_object* v___x_1318_; lean_object* v___x_1319_; lean_object* v___x_1320_; 
 lean_ctor_set_uint8(v_config_1311_, 9, v___x_1309_);
 v___x_1312_ = l_Lean_Meta_Context_configKey(v___x_1266_);
-v___x_1313_ = 2ULL;
+v___x_1313_ = 3ULL;
 v___x_1314_ = lean_uint64_shift_right(v___x_1312_, v___x_1313_);
 v___x_1315_ = lean_uint64_shift_left(v___x_1314_, v___x_1313_);
 v___x_1316_ = lean_uint64_once(&l___private_Lean_Elab_Tactic_Monotonicity_0__Lean_Meta_Monotonicity_initFn___lam__1___closed__0_00___x40_Lean_Elab_Tactic_Monotonicity_1250514167____hygCtx___hyg_2_, &l___private_Lean_Elab_Tactic_Monotonicity_0__Lean_Meta_Monotonicity_initFn___lam__1___closed__0_00___x40_Lean_Elab_Tactic_Monotonicity_1250514167____hygCtx___hyg_2__once, _init_l___private_Lean_Elab_Tactic_Monotonicity_0__Lean_Meta_Monotonicity_initFn___lam__1___closed__0_00___x40_Lean_Elab_Tactic_Monotonicity_1250514167____hygCtx___hyg_2_);
@@ -8011,7 +8011,7 @@ _start:
 lean_object* v___x_2699_; lean_object* v___x_2700_; lean_object* v___x_2701_; lean_object* v___x_2702_; lean_object* v___x_2703_; lean_object* v___x_2704_; 
 v___x_2699_ = ((lean_object*)(l___private_Init_While_0__Lean_Loop_forIn_loop___at___00Lean_Meta_Monotonicity_headBetaUnderLambda_spec__1___closed__2));
 v___x_2700_ = lean_unsigned_to_nat(20u);
-v___x_2701_ = lean_unsigned_to_nat(1924u);
+v___x_2701_ = lean_unsigned_to_nat(1933u);
 v___x_2702_ = ((lean_object*)(l_Lean_Meta_Monotonicity_solveMonoStep___lam__1___closed__0));
 v___x_2703_ = ((lean_object*)(l___private_Init_While_0__Lean_Loop_forIn_loop___at___00Lean_Meta_Monotonicity_headBetaUnderLambda_spec__1___closed__0));
 v___x_2704_ = l_mkPanicMessageWithDecl(v___x_2703_, v___x_2702_, v___x_2701_, v___x_2700_, v___x_2699_);

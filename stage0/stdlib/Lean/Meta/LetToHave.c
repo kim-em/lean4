@@ -5881,7 +5881,7 @@ _start:
 lean_object* v___x_1864_; lean_object* v___x_1865_; lean_object* v___x_1866_; lean_object* v___x_1867_; lean_object* v___x_1868_; lean_object* v___x_1869_; 
 v___x_1864_ = ((lean_object*)(l___private_Lean_Meta_LetToHave_0__Lean_Meta_LetToHave_visitApp___closed__2));
 v___x_1865_ = lean_unsigned_to_nat(18u);
-v___x_1866_ = lean_unsigned_to_nat(1829u);
+v___x_1866_ = lean_unsigned_to_nat(1838u);
 v___x_1867_ = ((lean_object*)(l___private_Lean_Meta_LetToHave_0__Lean_Meta_LetToHave_visitApp___closed__1));
 v___x_1868_ = ((lean_object*)(l___private_Lean_Meta_LetToHave_0__Lean_Meta_LetToHave_visitApp___closed__0));
 v___x_1869_ = l_mkPanicMessageWithDecl(v___x_1868_, v___x_1867_, v___x_1866_, v___x_1865_, v___x_1864_);
@@ -8312,7 +8312,7 @@ _start:
 lean_object* v___x_2667_; lean_object* v___x_2668_; lean_object* v___x_2669_; lean_object* v___x_2670_; lean_object* v___x_2671_; lean_object* v___x_2672_; 
 v___x_2667_ = ((lean_object*)(l___private_Lean_Meta_LetToHave_0__Lean_Meta_LetToHave_visitProj___closed__1));
 v___x_2668_ = lean_unsigned_to_nat(18u);
-v___x_2669_ = lean_unsigned_to_nat(1878u);
+v___x_2669_ = lean_unsigned_to_nat(1887u);
 v___x_2670_ = ((lean_object*)(l___private_Lean_Meta_LetToHave_0__Lean_Meta_LetToHave_visitProj___closed__0));
 v___x_2671_ = ((lean_object*)(l___private_Lean_Meta_LetToHave_0__Lean_Meta_LetToHave_visitApp___closed__0));
 v___x_2672_ = l_mkPanicMessageWithDecl(v___x_2671_, v___x_2670_, v___x_2669_, v___x_2668_, v___x_2667_);
@@ -14803,7 +14803,7 @@ uint64_t v___x_4863_; uint64_t v___x_4864_; uint64_t v___x_4865_; uint64_t v___x
 lean_ctor_set_uint8(v_config_4862_, 9, v___x_4860_);
 v___x_4863_ = l_Lean_Meta_Context_configKey(v___x_4837_);
 lean_dec_ref(v___x_4837_);
-v___x_4864_ = 2ULL;
+v___x_4864_ = 3ULL;
 v___x_4865_ = lean_uint64_shift_right(v___x_4863_, v___x_4864_);
 v___x_4866_ = lean_uint64_shift_left(v___x_4865_, v___x_4864_);
 v___x_4867_ = lean_uint64_once(&l___private_Lean_Meta_LetToHave_0__Lean_Meta_LetToHave_main___lam__3___closed__6, &l___private_Lean_Meta_LetToHave_0__Lean_Meta_LetToHave_main___lam__3___closed__6_once, _init_l___private_Lean_Meta_LetToHave_0__Lean_Meta_LetToHave_main___lam__3___closed__6);

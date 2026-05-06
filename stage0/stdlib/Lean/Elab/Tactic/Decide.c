@@ -1,6 +1,6 @@
 // Lean compiler output
 // Module: Lean.Elab.Tactic.Decide
-// Imports: public import Lean.Elab.Tactic.Basic import Lean.Meta.Native import Lean.Elab.Tactic.ElabTerm
+// Imports: public import Lean.Elab.Tactic.Basic public import Lean.Meta.Tactic.Cleanup import Lean.Meta.Native import Lean.Elab.Tactic.ElabTerm
 #include <lean/lean.h>
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -5238,7 +5238,7 @@ v_reusejp_1567_:
 uint64_t v___x_1569_; uint64_t v___x_1570_; uint64_t v___x_1571_; uint64_t v___x_1572_; uint64_t v___x_1573_; uint64_t v_key_1574_; lean_object* v___x_1575_; lean_object* v___x_1576_; lean_object* v___x_1577_; 
 lean_ctor_set_uint8(v_config_1568_, 9, v___y_1534_);
 v___x_1569_ = l_Lean_Meta_Context_configKey(v___y_1481_);
-v___x_1570_ = 2ULL;
+v___x_1570_ = 3ULL;
 v___x_1571_ = lean_uint64_shift_right(v___x_1569_, v___x_1570_);
 v___x_1572_ = lean_uint64_shift_left(v___x_1571_, v___x_1570_);
 v___x_1573_ = l_Lean_Meta_TransparencyMode_toUInt64(v___y_1534_);
@@ -6686,7 +6686,7 @@ v_reusejp_2234_:
 uint64_t v___x_2236_; uint64_t v___x_2237_; uint64_t v___x_2238_; uint64_t v___x_2239_; uint64_t v___x_2240_; uint64_t v_key_2241_; lean_object* v___x_2242_; lean_object* v___x_2243_; lean_object* v___x_2244_; 
 lean_ctor_set_uint8(v_config_2235_, 9, v___y_2202_);
 v___x_2236_ = l_Lean_Meta_Context_configKey(v_a_2190_);
-v___x_2237_ = 2ULL;
+v___x_2237_ = 3ULL;
 v___x_2238_ = lean_uint64_shift_right(v___x_2236_, v___x_2237_);
 v___x_2239_ = lean_uint64_shift_left(v___x_2238_, v___x_2237_);
 v___x_2240_ = l_Lean_Meta_TransparencyMode_toUInt64(v___y_2202_);
@@ -6963,7 +6963,7 @@ v_reusejp_2348_:
 uint64_t v___x_2350_; uint64_t v___x_2351_; uint64_t v___x_2352_; uint64_t v___x_2353_; uint64_t v___x_2354_; uint64_t v_key_2355_; lean_object* v___x_2356_; lean_object* v___x_2357_; lean_object* v___x_2358_; 
 lean_ctor_set_uint8(v_config_2349_, 9, v___y_2315_);
 v___x_2350_ = l_Lean_Meta_Context_configKey(v___y_2309_);
-v___x_2351_ = 2ULL;
+v___x_2351_ = 3ULL;
 v___x_2352_ = lean_uint64_shift_right(v___x_2350_, v___x_2351_);
 v___x_2353_ = lean_uint64_shift_left(v___x_2352_, v___x_2351_);
 v___x_2354_ = l_Lean_Meta_TransparencyMode_toUInt64(v___y_2315_);
@@ -10576,6 +10576,7 @@ return v_res_3748_;
 }
 }
 lean_object* runtime_initialize_Lean_Elab_Tactic_Basic(uint8_t builtin);
+lean_object* runtime_initialize_Lean_Meta_Tactic_Cleanup(uint8_t builtin);
 lean_object* runtime_initialize_Lean_Meta_Native(uint8_t builtin);
 lean_object* runtime_initialize_Lean_Elab_Tactic_ElabTerm(uint8_t builtin);
 static bool _G_runtime_initialized = false;
@@ -10584,6 +10585,9 @@ lean_object * res;
 if (_G_runtime_initialized) return lean_io_result_mk_ok(lean_box(0));
 _G_runtime_initialized = true;
 res = runtime_initialize_Lean_Elab_Tactic_Basic(builtin);
+if (lean_io_result_is_error(res)) return res;
+lean_dec_ref(res);
+res = runtime_initialize_Lean_Meta_Tactic_Cleanup(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 res = runtime_initialize_Lean_Meta_Native(builtin);
@@ -10614,6 +10618,7 @@ _G_meta_initialized = true;
 return lean_io_result_mk_ok(lean_box(0));
 }
 lean_object* initialize_Lean_Elab_Tactic_Basic(uint8_t builtin);
+lean_object* initialize_Lean_Meta_Tactic_Cleanup(uint8_t builtin);
 lean_object* initialize_Lean_Meta_Native(uint8_t builtin);
 lean_object* initialize_Lean_Elab_Tactic_ElabTerm(uint8_t builtin);
 static bool _G_initialized = false;
@@ -10622,6 +10627,9 @@ lean_object * res;
 if (_G_initialized) return lean_io_result_mk_ok(lean_box(0));
 _G_initialized = true;
 res = initialize_Lean_Elab_Tactic_Basic(builtin);
+if (lean_io_result_is_error(res)) return res;
+lean_dec_ref(res);
+res = initialize_Lean_Meta_Tactic_Cleanup(builtin);
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 res = initialize_Lean_Meta_Native(builtin);

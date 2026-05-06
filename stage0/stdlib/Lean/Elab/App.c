@@ -52368,7 +52368,7 @@ uint64_t v___x_17987_; uint64_t v___x_17988_; uint64_t v___x_17989_; lean_object
 lean_ctor_set_uint8(v_config_17986_, 9, v___x_17984_);
 v___x_17987_ = l_Lean_Meta_Context_configKey(v_a_17947_);
 lean_dec_ref(v_a_17947_);
-v___x_17988_ = 2ULL;
+v___x_17988_ = 3ULL;
 v___x_17989_ = lean_uint64_shift_right(v___x_17987_, v___x_17988_);
 v___x_17990_ = ((lean_object*)(l___private_Lean_Elab_App_0__Lean_Elab_Term_resolveLValAux___closed__39));
 v___x_17991_ = lean_name_eq(v_baseName_17946_, v___x_17990_);

@@ -12737,7 +12737,7 @@ v_reusejp_3566_:
 uint64_t v___x_3568_; uint64_t v___x_3569_; uint64_t v___x_3570_; lean_object* v___x_3571_; uint64_t v___x_3572_; uint64_t v___x_3573_; uint64_t v_key_3574_; lean_object* v___x_3575_; lean_object* v___x_3576_; lean_object* v___x_3577_; 
 lean_ctor_set_uint8(v_config_3567_, 9, v___x_3565_);
 v___x_3568_ = l_Lean_Meta_Context_configKey(v___y_3498_);
-v___x_3569_ = 2ULL;
+v___x_3569_ = 3ULL;
 v___x_3570_ = lean_uint64_shift_right(v___x_3568_, v___x_3569_);
 v___x_3571_ = lean_expr_instantiate_rev_range(v_fst_3530_, v_snd_3531_, v_a_3496_, v_args_3495_);
 lean_dec(v_snd_3531_);
@@ -26359,7 +26359,7 @@ v_reusejp_7900_:
 uint64_t v___x_7902_; uint64_t v___x_7903_; uint64_t v___x_7904_; lean_object* v___f_7905_; uint64_t v___x_7906_; uint64_t v___x_7907_; uint64_t v_key_7908_; lean_object* v___x_7909_; lean_object* v___x_7910_; uint8_t v___x_7911_; lean_object* v___x_7912_; 
 lean_ctor_set_uint8(v_config_7901_, 9, v___x_7899_);
 v___x_7902_ = l_Lean_Meta_Context_configKey(v___y_7841_);
-v___x_7903_ = 2ULL;
+v___x_7903_ = 3ULL;
 v___x_7904_ = lean_uint64_shift_right(v___x_7902_, v___x_7903_);
 v___f_7905_ = lean_alloc_closure((void*)(l___private_Lean_PrettyPrinter_Delaborator_Builtins_0__Lean_PrettyPrinter_Delaborator_collectStructFields___lam__1___boxed), 9, 2);
 lean_closure_set(v___f_7905_, 0, v_snd_7864_);
