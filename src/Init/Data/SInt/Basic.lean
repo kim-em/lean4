@@ -410,7 +410,7 @@ Examples:
  * `(if (5 : Int8) < 5 then "yes" else "no") = "no"`
  * `show ¬((7 : Int8) < 7) by decide`
 -/
-@[extern "lean_int8_dec_lt", implicit_reducible]
+@[extern "lean_int8_dec_lt", instance_reducible]
 def Int8.decLt (a b : Int8) : Decidable (a < b) :=
   inferInstanceAs (Decidable (a.toBitVec.slt b.toBitVec))
 
@@ -426,7 +426,7 @@ Examples:
  * `(if (15 : Int8) ≤ 5 then "yes" else "no") = "no"`
  * `show (7 : Int8) ≤ 7 by decide`
 -/
-@[extern "lean_int8_dec_le", implicit_reducible]
+@[extern "lean_int8_dec_le", instance_reducible]
 def Int8.decLe (a b : Int8) : Decidable (a ≤ b) :=
   inferInstanceAs (Decidable (a.toBitVec.sle b.toBitVec))
 
@@ -779,7 +779,7 @@ Examples:
  * `(if (5 : Int16) < 5 then "yes" else "no") = "no"`
  * `show ¬((7 : Int16) < 7) by decide`
 -/
-@[extern "lean_int16_dec_lt", implicit_reducible]
+@[extern "lean_int16_dec_lt", instance_reducible]
 def Int16.decLt (a b : Int16) : Decidable (a < b) :=
   inferInstanceAs (Decidable (a.toBitVec.slt b.toBitVec))
 
@@ -795,7 +795,7 @@ Examples:
  * `(if (15 : Int16) ≤ 5 then "yes" else "no") = "no"`
  * `show (7 : Int16) ≤ 7 by decide`
 -/
-@[extern "lean_int16_dec_le", implicit_reducible]
+@[extern "lean_int16_dec_le", instance_reducible]
 def Int16.decLe (a b : Int16) : Decidable (a ≤ b) :=
   inferInstanceAs (Decidable (a.toBitVec.sle b.toBitVec))
 
@@ -1164,7 +1164,7 @@ Examples:
  * `(if (5 : Int32) < 5 then "yes" else "no") = "no"`
  * `show ¬((7 : Int32) < 7) by decide`
 -/
-@[extern "lean_int32_dec_lt", implicit_reducible]
+@[extern "lean_int32_dec_lt", instance_reducible]
 def Int32.decLt (a b : Int32) : Decidable (a < b) :=
   inferInstanceAs (Decidable (a.toBitVec.slt b.toBitVec))
 
@@ -1180,7 +1180,7 @@ Examples:
  * `(if (15 : Int32) ≤ 5 then "yes" else "no") = "no"`
  * `show (7 : Int32) ≤ 7 by decide`
 -/
-@[extern "lean_int32_dec_le", implicit_reducible]
+@[extern "lean_int32_dec_le", instance_reducible]
 def Int32.decLe (a b : Int32) : Decidable (a ≤ b) :=
   inferInstanceAs (Decidable (a.toBitVec.sle b.toBitVec))
 
@@ -1569,7 +1569,7 @@ Examples:
  * `(if (5 : Int64) < 5 then "yes" else "no") = "no"`
  * `show ¬((7 : Int64) < 7) by decide`
 -/
-@[extern "lean_int64_dec_lt", implicit_reducible]
+@[extern "lean_int64_dec_lt", instance_reducible]
 def Int64.decLt (a b : Int64) : Decidable (a < b) :=
   inferInstanceAs (Decidable (a.toBitVec.slt b.toBitVec))
 /--
@@ -1584,7 +1584,7 @@ Examples:
  * `(if (15 : Int64) ≤ 5 then "yes" else "no") = "no"`
  * `show (7 : Int64) ≤ 7 by decide`
 -/
-@[extern "lean_int64_dec_le", implicit_reducible]
+@[extern "lean_int64_dec_le", instance_reducible]
 def Int64.decLe (a b : Int64) : Decidable (a ≤ b) :=
   inferInstanceAs (Decidable (a.toBitVec.sle b.toBitVec))
 
@@ -1959,7 +1959,7 @@ Examples:
  * `(if (5 : ISize) < 5 then "yes" else "no") = "no"`
  * `show ¬((7 : ISize) < 7) by decide`
 -/
-@[extern "lean_isize_dec_lt", implicit_reducible]
+@[extern "lean_isize_dec_lt", instance_reducible]
 def ISize.decLt (a b : ISize) : Decidable (a < b) :=
   inferInstanceAs (Decidable (a.toBitVec.slt b.toBitVec))
 
@@ -1975,7 +1975,7 @@ Examples:
  * `(if (15 : ISize) ≤ 5 then "yes" else "no") = "no"`
  * `show (7 : ISize) ≤ 7 by decide`
 -/
-@[extern "lean_isize_dec_le", implicit_reducible]
+@[extern "lean_isize_dec_le", instance_reducible]
 def ISize.decLe (a b : ISize) : Decidable (a ≤ b) :=
   inferInstanceAs (Decidable (a.toBitVec.sle b.toBitVec))
 

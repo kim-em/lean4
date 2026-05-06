@@ -103,7 +103,7 @@ a higher universe level than `α`. -/
   errorsFound := "DUPLICATED NAMESPACES IN NAME:"
   test declName := do
     if ← isAutoDecl declName then return none
-    if ← isImplicitReducible declName then return none
+    if ← isInstanceReducible declName then return none
     let nm := declName.components
     let some (dup, _) := nm.zip nm.tail! |>.find? fun (x, y) => x == y
       | return none

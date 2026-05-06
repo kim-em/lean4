@@ -258,10 +258,10 @@ def addInstance (declName : Name) (attrKind : AttributeKind) (prio : Nat) : Meta
   checkNonClassInstance declName c
   let keys ← mkInstanceKey c
   let status ← getReducibilityStatus declName
-  unless status matches .reducible | .implicitReducible do
+  unless status matches .reducible | .instanceReducible | .implicitReducible do
     let info ← getConstInfo declName
     if info.isDefinition then
-      logWarning m!"instance `{declName}` must be marked with `@[reducible]` or `@[implicit_reducible]`"
+      logWarning m!"instance `{declName}` must be marked with `@[reducible]` or `@[instance_reducible]`"
     else if wasOriginallyDefn (← getEnv) declName then
       logWarning m!"instance `{declName}` must be marked with `@[expose]`"
   let projInfo? ← getProjectionFnInfo? declName
@@ -269,7 +269,7 @@ def addInstance (declName : Name) (attrKind : AttributeKind) (prio : Nat) : Meta
   instanceExtension.add { keys, val := c, priority := prio, globalName? := declName, attrKind, synthOrder } attrKind
 
 /-
-Adds instance **and** marks it with reducibility status `@[implicit_reducible]`. We use this function
+Adds instance **and** marks it with reducibility status `@[instance_reducible]`. We use this function
 to elaborate `instance` command.
 
 **Note**: We used to check whether `declName` had `instance` reducibility by using `isInstance declName`.
@@ -291,7 +291,7 @@ not its transparency status.
 Thus, we added a new transparency setting and set it here.
 -/
 def registerInstance (declName : Name) (attrKind : AttributeKind) (prio : Nat) : MetaM Unit := do
-  setReducibilityStatus declName .implicitReducible
+  setReducibilityStatus declName .instanceReducible
   addInstance declName attrKind prio
 
 /--
