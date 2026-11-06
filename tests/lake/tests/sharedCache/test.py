@@ -72,8 +72,8 @@ class Publication(unittest.TestCase):
         self.paused_download("batch")
 
     def test_overlapping_downloads_survive_a_killed_publisher(self):
-        for mode in ("fetch", "batch"):
-            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
+        for mode, killed in (("fetch", False), ("fetch", True), ("batch", False), ("batch", True)):
+            with self.subTest(mode=mode, killed=killed), tempfile.TemporaryDirectory() as tmp:
                 target = pathlib.Path(tmp) / "artifact.art"
                 body = b"a complete artifact from the surviving publisher"
                 release = threading.Event()
@@ -107,11 +107,13 @@ class Publication(unittest.TestCase):
                 try:
                     self.assertTrue(both_started.wait(60), "both native writers must reach the server")
                     self.assertFalse(target.exists())
-                    children[0].kill()
-                    children[0].communicate(timeout=60)
+                    if killed:
+                        children[0].kill()
+                        children[0].communicate(timeout=60)
                     release.set()
-                    out, err = children[1].communicate(timeout=60)
-                    self.assertEqual(children[1].returncode, 0, out + err)
+                    for child in children[1:] if killed else children:
+                        out, err = child.communicate(timeout=60)
+                        self.assertEqual(child.returncode, 0, out + err)
                     if mode == "batch":
                         target = next((pathlib.Path(tmp) / "artifacts").glob("*.art"))
                     self.assertEqual(target.read_bytes(), body)
@@ -157,7 +159,9 @@ class NativeWorkspaces(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = pathlib.Path(self.temp.name)
-        self.lake = pathlib.Path(__file__).resolve().parents[2] / ".lake/build/bin/lake"
+        executable = shutil.which(os.environ.get("LAKE", "lake"))
+        self.assertIsNotNone(executable, "the test harness must provide Lake on PATH or through LAKE")
+        self.lake = pathlib.Path(executable).resolve()
         prefix = pathlib.Path(subprocess.check_output(
             [os.environ.get("LEAN", "lean"), "--print-prefix"], text=True).strip())
         self.original = prefix / "bin/lake"
@@ -217,6 +221,8 @@ class NativeWorkspaces(unittest.TestCase):
         self.assertTrue(list((self.root / "private/artifacts").glob("*.olean")))
 
     def test_old_child_retains_private_fallback(self):
+        if self.original.resolve() == self.lake:
+            self.skipTest("a distinct stock Lake executable is not available")
         old = self.original
         result = self.run_lake(self.first, "env", str(old), "env", "printenv", "LAKE_CACHE_DIR")
         self.assertEqual(result.strip().splitlines()[-1], str(self.root / "private"))
@@ -230,6 +236,8 @@ class NativeWorkspaces(unittest.TestCase):
         self.run_lake(self.first, "env", str(old), "build", "Example")
 
     def test_cached_configuration_survives_stock_patched_alternation(self):
+        if self.original.resolve() == self.lake:
+            self.skipTest("a distinct stock Lake executable is not available")
         config = '''import Lake
 open Lake DSL
 initialize do
