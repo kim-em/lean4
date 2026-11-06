@@ -1446,6 +1446,9 @@ def lake : CliM PUnit := do
   match (← getArgs) with
   | [] => IO.println usage
   | ["--version"] => IO.println uiVersionString
+  | ["--shared-cache-dir"] =>
+    let env ← (← getThe LakeOptions).computeEnv
+    if let some cache := env.sharedLakeCache? then IO.println cache.dir else IO.println ""
   | _ => -- normal CLI
     processLeadingOptions lakeOption -- between `lake` and command
     if let some cmd ← takeArg? then
