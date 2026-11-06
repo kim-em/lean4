@@ -218,7 +218,7 @@ class NativeWorkspaces(unittest.TestCase):
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             selections.append(result.stdout.strip())
-        self.assertEqual(selections[0], "")
+        self.assertEqual(selections[0], selections[1])
         self.assertTrue(selections[1].startswith(str(self.root / "shared/toolchains")))
 
     def test_toolchain_revision_namespaces_are_separate(self):
@@ -234,6 +234,39 @@ class NativeWorkspaces(unittest.TestCase):
         self.assertTrue(second)
         self.assertNotEqual(first, second)
         self.run_lake(self.first, "build", "Example", env=env)
+
+    def test_forwarding_sysroot_shares_without_bypassing_compiler_wrapper(self):
+        expected = self.run_lake(self.first, "--shared-cache-dir").strip()
+        proxy = self.root / "forwarding"
+        (proxy / "bin").mkdir(parents=True)
+        for name in ("lib", "src", "include", "share"):
+            if (self.install / name).exists():
+                (proxy / name).symlink_to(self.install / name, target_is_directory=True)
+        for binary in (self.install / "bin").iterdir():
+            if binary.name != "lean":
+                (proxy / "bin" / binary.name).symlink_to(binary)
+        marker = self.root / "wrapper-used"
+        compiler = self.original.with_name("lean")
+        wrapper = proxy / "bin/lean"
+        wrapper.write_text(f'''#!{sys.executable}
+import os, pathlib, sys
+if sys.argv[1:] == ["--print-prefix"]:
+    print({str(proxy)!r})
+    raise SystemExit(0)
+if any(arg.endswith("Example.lean") for arg in sys.argv[1:]):
+    pathlib.Path({str(marker)!r}).touch()
+os.execv({str(compiler)!r}, [{str(compiler)!r}, *sys.argv[1:]])
+''')
+        wrapper.chmod(0o755)
+        env = dict(self.env, LEAN=str(wrapper))
+        env.pop("LEAN_SYSROOT")
+        selected = self.run_lake(self.first, "--shared-cache-dir", env=env).strip()
+        self.assertEqual(selected, expected)
+        self.run_lake(self.first, "build", "Example", env=env)
+        self.assertTrue(marker.exists(), "cache sharing bypassed the compiler wrapper")
+        self.run_lake(self.second, "build", "Example")
+        self.assertEqual((self.first / ".lake/build/lib/lean/Example.olean").stat().st_ino,
+                         (self.second / ".lake/build/lib/lean/Example.olean").stat().st_ino)
 
     def test_linked_and_overridden_toolchains_keep_private_storage(self):
         self.assertEqual(self.run_lake(self.first, "--shared-cache-dir",

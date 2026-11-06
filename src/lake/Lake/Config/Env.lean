@@ -188,14 +188,18 @@ def sharedCache? (env : Env) : IO (Option Cache) := do
   let some elan := env.elan? | return none
   let install := elan.toolchainDir env.toolchain
   if (← install.symlinkMetadata).type == .symlink then return none
-  let sysroot ← IO.FS.realPath env.lean.sysroot
-  unless sysroot == (← IO.FS.realPath install) do return none
+  let sysroot ← IO.FS.realPath install
+  unless (← IO.FS.realPath env.lean.leanLibDir) == (← IO.FS.realPath (sysroot / "lib" / "lean")) do
+    return none
+  let actual ← env.lean.sharedDynlibs.mapM fun lib => IO.FS.realPath lib.path
+  let expected ← (leanSharedDynlibs sysroot).mapM fun lib => IO.FS.realPath lib.path
+  unless actual == expected do return none
   let identity := Hash.ofString (sysroot.toString ++ env.lean.githash)
   let cache : Cache := ⟨FilePath.mk root / "toolchains" / identity.toString⟩
   for name in #["artifacts", "outputs", "revisions"] do
     withTempFileFor (cache.dir / name / "probe") fun _ => pure ()
   let cwd ← IO.currentDir
-  withTempFileFor (cwd / "probe") fun source =>
+  withTempFileFor (cwd / ".lake" / "probe") fun source =>
     withTempFileFor (cache.artifactDir / "probe") fun target => do
       IO.FS.removeFile target
       IO.FS.hardLink source target

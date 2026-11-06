@@ -580,6 +580,8 @@ Greet the entity with the given name. Otherwise, greet the whole world.
 `LAKE_SHARED_CACHE_ROOT` opts a compatible Lake executable into a local store
 under `toolchains/<identity>`. It requires restored artifacts, a recognized
 release toolchain, and working hard links between the store and workspace.
+Forwarding sysroots can use the same namespace when their Lean libraries resolve
+to the installed release's libraries. Compiler command wrappers remain in use.
 Otherwise the ordinary `LAKE_CACHE_DIR` remains in use. The native store publishes
 complete artifacts and mappings atomically and treats eviction during restoration
 as a cache miss.
