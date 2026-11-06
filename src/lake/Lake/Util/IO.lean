@@ -28,8 +28,8 @@ public def removeFileIfExists (path : FilePath) : IO Unit := do
 public partial def createTempFileFor (path : FilePath) : IO FilePath := do
   createParentDirs path
   let pid ← IO.Process.getPID
-  let nonce := (← IO.getRandomBytes 16).toList.foldl (fun s b => s ++ toString b ++ "-") ""
-  let tmp := path.parent.getD "." / (".lake-cache-" ++ toString pid ++ "-" ++ nonce ++ ".tmp")
+  let nonce ← IO.monoNanosNow
+  let tmp := path.parent.getD "." / (".lake-cache-" ++ toString pid ++ "-" ++ toString nonce ++ ".tmp")
   try
     discard <| IO.FS.Handle.mk tmp .writeNew
     return tmp
