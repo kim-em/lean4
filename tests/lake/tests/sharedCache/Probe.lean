@@ -14,6 +14,10 @@ def main (args : List String) : IO UInt32 := do
     let artifact ← (Cache.mk root).saveArtifact source "art"
     IO.println artifact.path
     return 0
+  | ["save-text", root, source] =>
+    let artifact ← (Cache.mk root).saveArtifact source "art" (text := true)
+    IO.println artifact.path
+    return 0
   | ["restore-exe", root, source, target] =>
     let artifact ← (Cache.mk root).saveArtifact source "exe"
     let result ← (restoreArtifact target artifact (exe := true)).toBaseIO
@@ -21,6 +25,12 @@ def main (args : List String) : IO UInt32 := do
   | ["batch", url, root, contents] =>
     let hash := Hash.ofByteArray contents.toUTF8
     let result ← (CacheService.downloadArtifacts #[artifactWithExt hash "art"] ⟨root⟩
+      (CacheService.downloadArtsService url) (.ofString "test")).toBaseIO
+    return if result.isSome then 0 else 1
+  | ["batch-extra", url, root, contents] =>
+    let hash := Hash.ofByteArray contents.toUTF8
+    let result ← (CacheService.downloadArtifacts
+      #[artifactWithExt hash "art", artifactWithExt hash "extra"] ⟨root⟩
       (CacheService.downloadArtsService url) (.ofString "test")).toBaseIO
     return if result.isSome then 0 else 1
   | ["map", path, contents] =>

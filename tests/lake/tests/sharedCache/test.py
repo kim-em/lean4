@@ -14,6 +14,92 @@ import unittest
 
 
 class Publication(unittest.TestCase):
+    def paused_copy(self, command, root, final_pattern, *, copy_source=None, killed=False):
+        pause = root / "pause"
+        pause.mkdir()
+        library = root / "pause.so"
+        result = subprocess.run(["cc", "-shared", "-fPIC", "-o", str(library),
+                                 "pause_write.c", "-ldl"], capture_output=True, text=True,
+                                env={k: v for k, v in os.environ.items() if k != "LD_LIBRARY_PATH"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        artifacts = root / "cache/artifacts"
+        env = dict(os.environ, LD_PRELOAD=str(library), TEST_WRITE_PREFIX=str(artifacts),
+                   TEST_WRITE_PAUSE_DIR=str(pause))
+        if copy_source is not None:
+            env["TEST_COPY_SOURCE"] = str(copy_source)
+        child = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            deadline = time.monotonic() + 60
+            while not (pause / "paused").exists() and child.poll() is None and time.monotonic() < deadline:
+                time.sleep(0.01)
+            self.assertTrue((pause / "paused").exists(), "copy did not enter the controlled partial-write window")
+            partial = pathlib.Path((pause / "paused").read_text())
+            self.assertEqual(partial.stat().st_size, 4096)
+            self.assertEqual(list(artifacts.glob(final_pattern)), [], "reader can see partial artifact bytes")
+            if killed:
+                child.kill()
+        finally:
+            (pause / "release").touch()
+            try:
+                out, err = child.communicate(timeout=60)
+            except subprocess.TimeoutExpired:
+                child.kill()
+                child.communicate(timeout=60)
+                raise
+        if killed:
+            self.assertNotEqual(child.returncode, 0)
+            self.assertEqual(list(artifacts.glob(final_pattern)), [])
+        else:
+            self.assertEqual(child.returncode, 0, out + err)
+            self.assertEqual(next(artifacts.glob(final_pattern)).read_bytes(), b"x" * 8192)
+
+    @unittest.skipUnless(sys.platform.startswith("linux") and shutil.which("cc"), "write interposition needs Linux and cc")
+    def test_slow_local_artifact_copies_publish_only_complete_bytes(self):
+        for mode in ("save", "save-text"):
+            for killed in (False, True):
+                with self.subTest(mode=mode, killed=killed), tempfile.TemporaryDirectory() as tmp:
+                    root = pathlib.Path(tmp)
+                    source = root / "source"
+                    source.write_bytes(b"x" * 8192)
+                    self.paused_copy([os.environ.get("LEAN", "lean"), "--run", "Probe.lean", mode,
+                                      str(root / "cache"), str(source)], root, "*.art",
+                                     copy_source=source, killed=killed)
+
+    @unittest.skipUnless(sys.platform.startswith("linux") and shutil.which("cc"), "write interposition needs Linux and cc")
+    def test_extra_download_destinations_publish_only_complete_bytes(self):
+        body = b"x" * 8192
+        arrivals = []
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                arrivals.append(1)
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            def log_message(self, *_):
+                pass
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            for warm in (False, True):
+                with self.subTest(warm=warm), tempfile.TemporaryDirectory() as tmp:
+                    root = pathlib.Path(tmp)
+                    command = [os.environ.get("LEAN", "lean"), "--run", "Probe.lean", "batch",
+                               f"http://127.0.0.1:{server.server_port}/artifact", str(root / "cache"), body.decode()]
+                    if warm:
+                        result = subprocess.run(command, capture_output=True, text=True)
+                        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    before = len(arrivals)
+                    command[3] = "batch-extra"
+                    self.paused_copy(command, root, "*.extra")
+                    self.assertEqual(len(arrivals) - before, 0 if warm else 1)
+                    self.assertEqual(next((root / "cache/artifacts").glob("*.art")).read_bytes(), body)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
     def paused_download(self, mode):
         body = b"a complete native artifact"
         started = threading.Event()
