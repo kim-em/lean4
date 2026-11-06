@@ -182,6 +182,7 @@ class NativeWorkspaces(unittest.TestCase):
         self.env = dict(os.environ, ELAN_HOME=str(elan),
                         ELAN_TOOLCHAIN="leanprover/lean4:v0.0.0-cache-fixture",
                         LEAN_SYSROOT=str(install), LEAN=str(install / "bin/lean"),
+                        LAKE_OVERRIDE_LEAN="1",
                         LAKE_SHARED_CACHE_ROOT=str(self.root / "shared"),
                         LAKE_CACHE_DIR=str(self.root / "private"),
                         LAKE_SHARED_CACHE_FALLBACK=str(self.root / "private"),
@@ -202,6 +203,46 @@ class NativeWorkspaces(unittest.TestCase):
                                 text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         self.assertEqual(result.returncode, 0, result.stdout)
         return result.stdout
+
+    def test_explicit_sysroot_with_colocated_lake(self):
+        prefix = self.root / "colocated"
+        (prefix / "bin").mkdir(parents=True)
+        shutil.copy2(self.lake, prefix / "bin/lake")
+        compiler = self.original.parent.parent
+        (prefix / "bin/lean").symlink_to(compiler / "bin/lean")
+        (prefix / "lib").symlink_to(compiler / "lib", target_is_directory=True)
+        selections = []
+        for override in ("0", "1"):
+            result = subprocess.run([str(prefix / "bin/lake"), "--shared-cache-dir"], cwd=self.first,
+                                    env=dict(self.env, LAKE_OVERRIDE_LEAN=override),
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            selections.append(result.stdout.strip())
+        self.assertEqual(selections[0], "")
+        self.assertTrue(selections[1].startswith(str(self.root / "shared/toolchains")))
+
+    def test_toolchain_revision_namespaces_are_separate(self):
+        first = self.run_lake(self.first, "--shared-cache-dir").strip()
+        install = self.install.with_name("leanprover--lean4---v0.0.1-cache-fixture")
+        install.mkdir()
+        for name in ("bin", "lib", "src", "include", "share"):
+            if (self.install / name).exists():
+                (install / name).symlink_to(self.install / name, target_is_directory=True)
+        env = dict(self.env, ELAN_TOOLCHAIN="leanprover/lean4:v0.0.1-cache-fixture",
+                   LEAN_SYSROOT=str(install), LEAN=str(install / "bin/lean"))
+        second = self.run_lake(self.first, "--shared-cache-dir", env=env).strip()
+        self.assertTrue(second)
+        self.assertNotEqual(first, second)
+        self.run_lake(self.first, "build", "Example", env=env)
+
+    def test_linked_and_overridden_toolchains_keep_private_storage(self):
+        self.assertEqual(self.run_lake(self.first, "--shared-cache-dir",
+                                      env=dict(self.env, LEAN_GITHASH="local-edit")).strip(), "")
+        target = self.install.with_name("local-build")
+        self.install.rename(target)
+        self.install.symlink_to(target, target_is_directory=True)
+        self.assertEqual(self.run_lake(self.first, "--shared-cache-dir").strip(), "")
+        self.run_lake(self.first, "build", "Example")
 
     def test_reuse_rebuild_and_private_rollback(self):
         selected = self.run_lake(self.first, "--shared-cache-dir").strip()
