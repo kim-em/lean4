@@ -546,7 +546,7 @@ end CacheToolchain
 /-! ## Remote Cache Service -/
 
 /-- **For internal use only.** -/
-public def downloadArtifactCore (hash : Hash) (url : String) (path : FilePath) (overwrite := false) : LogIO Unit :=
+def downloadArtifactCoreWith (hash : Hash) (url : String) (path : FilePath) (overwrite : Bool) : LogIO Unit :=
   withTempFileFor path fun tmp => do
     download url tmp
     let actualHash ← computeFileHash tmp
@@ -554,7 +554,11 @@ public def downloadArtifactCore (hash : Hash) (url : String) (path : FilePath) (
       error s!"{tmp}: downloaded artifact hash mismatch, got {actualHash}"
     let r := {read := true, write := false, execution := false}
     IO.setAccessRights tmp ⟨r, r, r⟩
-    if overwrite then IO.FS.rename tmp path else publishFileIfNew tmp path
+    if overwrite then replaceFile tmp path else publishFileIfNew tmp path
+
+/-- **For internal use only.** -/
+public def downloadArtifactCore (hash : Hash) (url : String) (path : FilePath) : LogIO Unit :=
+  downloadArtifactCoreWith hash url path false
 
 /-- Uploads a file to an online bucket using the Amazon S3 protocol. -/
 def uploadS3
@@ -679,7 +683,7 @@ public def downloadArtifact
   logInfo s!"{scope}: downloading artifact {descr.hash}\
     \n  local path: {path}\
     \n  remote URL: {url}"
-  downloadArtifactCore descr.hash url path force
+  downloadArtifactCoreWith descr.hash url path force
 
 public def uploadArtifact
   (contentHash : Hash) (art : FilePath) (service : CacheService) (scope : CacheServiceScope)

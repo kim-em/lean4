@@ -670,6 +670,9 @@ drives and/or file systems), falls back to copying the artifact to the new path.
 public def restoreArtifact (file : FilePath) (art : Artifact) (exe := false) : LogIO Artifact := do
   if (← file.pathExists) then
     sharePrivateArtifact art.path file
+    if exe then
+      let rights := {read := true, write := false, execution := true}
+      IO.setAccessRights file ⟨rights, rights, rights⟩
   else
     logVerbose s!"found artifact in cache: {art.path}"
     createParentDirs file

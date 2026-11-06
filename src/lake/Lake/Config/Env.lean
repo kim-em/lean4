@@ -53,10 +53,6 @@ public structure Env where
   If `none`, no suitable system directory for the cache exists.
   -/
   lakeCache? : Option Cache := none
-  /-- Private fallback exported to child executables that may use an older Lake. -/
-  privateLakeCache? : Option Cache := none
-  /-- The native shared cache selected by this executable, if compatible. -/
-  sharedLakeCache? : Option Cache := none
   /--
   The directory for the Lake cache. Customized by `LAKE_CACHE_DIR`.
 
@@ -163,9 +159,23 @@ public def computeCache? (elan? : Option ElanInstall) (toolchain : String) : Bas
   else
     return none
 
+/-- Recognize the native shared namespace while preserving the public environment layout. -/
+public def sharedLakeCache? (env : Env) : Option Cache := do
+  let active ← env.lakeCache?
+  let fallback ← env.lakeSystemCache?
+  guard (active.dir != fallback.dir)
+  guard (active.dir.parent.bind FilePath.fileName == some "toolchains")
+  return active
+
+/-- The unchanged system-cache field retains the explicitly configured private fallback. -/
+public def privateLakeCache? (env : Env) : Option Cache :=
+  if env.sharedLakeCache?.isSome then env.lakeSystemCache? else none
+
 /-- Select shared storage only for supported release toolchains with restored artifacts. -/
 def sharedCache? (env : Env) : IO (Option Cache) := do
   let some root ← IO.getEnv "LAKE_SHARED_CACHE_ROOT" | return none
+  unless env.lakeCache?.isSome && env.lakeCache?.map (·.dir) == env.lakeSystemCache?.map (·.dir) do
+    return none
   if let some fallback ← IO.getEnv "LAKE_SHARED_CACHE_FALLBACK" then
     unless (← IO.getEnv "LAKE_CACHE_DIR") == some fallback do return none
   if root.isEmpty || env.noSystemCache || env.restoreAllArtifacts? != some true ||
@@ -182,6 +192,8 @@ def sharedCache? (env : Env) : IO (Option Cache) := do
   unless sysroot == (← IO.FS.realPath install) do return none
   let identity := Hash.ofString (sysroot.toString ++ env.lean.githash)
   let cache : Cache := ⟨FilePath.mk root / "toolchains" / identity.toString⟩
+  for name in #["artifacts", "outputs", "revisions"] do
+    withTempFileFor (cache.dir / name / "probe") fun _ => pure ()
   let cwd ← IO.currentDir
   withTempFileFor (cwd / "probe") fun source =>
     withTempFileFor (cache.artifactDir / "probe") fun target => do
@@ -221,10 +233,7 @@ public def compute
   }
   match (← sharedCache? env |>.toBaseIO) with
   | .ok (some cache) =>
-    return {env with
-      lakeCache? := some cache
-      sharedLakeCache? := some cache
-      privateLakeCache? := env.lakeCache?}
+    return {env with lakeCache? := some cache}
   | _ => return env
 where
   addCacheDirs userHome? toolchain env := do
@@ -312,8 +321,7 @@ public def noToolchainVars (env : Env) : Array (String × Option String) :=
   #[
     ("ELAN_TOOLCHAIN", none),
     ("LAKE", none),
-    ("LAKE_CACHE_DIR", if env.noSystemCache then some "" else
-      (if env.sharedLakeCache?.isSome then env.privateLakeCache? else env.lakeSystemCache?).map (·.dir.toString)),
+    ("LAKE_CACHE_DIR", if env.noSystemCache then some "" else env.lakeSystemCache?.map (·.dir.toString)),
     ("LAKE_OVERRIDE_LEAN", none),
     ("LAKE_HOME", none),
     ("LEAN", none),

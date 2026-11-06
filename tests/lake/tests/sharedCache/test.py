@@ -1,10 +1,12 @@
 """Deterministically pause native cache downloads before their bytes are complete."""
 
 import http.server
+import json
 import os
 import pathlib
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -69,15 +71,113 @@ class Publication(unittest.TestCase):
     def test_batch_fetch_never_exposes_partial_artifact(self):
         self.paused_download("batch")
 
+    def test_overlapping_downloads_survive_a_killed_publisher(self):
+        for mode in ("fetch", "batch"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
+                target = pathlib.Path(tmp) / "artifact.art"
+                body = b"a complete artifact from the surviving publisher"
+                release = threading.Event()
+                both_started = threading.Event()
+                arrivals = []
+                class Handler(http.server.BaseHTTPRequestHandler):
+                    def do_GET(self):
+                        self.send_response(200)
+                        self.send_header("Content-Length", str(len(body)))
+                        self.end_headers()
+                        self.wfile.write(body[:4])
+                        self.wfile.flush()
+                        arrivals.append(1)
+                        if len(arrivals) == 2:
+                            both_started.set()
+                        release.wait(60)
+                        try:
+                            self.wfile.write(body[4:])
+                        except BrokenPipeError:
+                            pass
+                    def log_message(self, *_):
+                        pass
+                server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                command = [os.environ.get("LEAN", "lean"), "--run", "Probe.lean", mode,
+                           f"http://127.0.0.1:{server.server_port}/artifact",
+                           str(target if mode == "fetch" else pathlib.Path(tmp)), body.decode()]
+                children = [subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                            for _ in range(2)]
+                try:
+                    self.assertTrue(both_started.wait(60), "both native writers must reach the server")
+                    self.assertFalse(target.exists())
+                    children[0].kill()
+                    children[0].communicate(timeout=60)
+                    release.set()
+                    out, err = children[1].communicate(timeout=60)
+                    self.assertEqual(children[1].returncode, 0, out + err)
+                    if mode == "batch":
+                        target = next((pathlib.Path(tmp) / "artifacts").glob("*.art"))
+                    self.assertEqual(target.read_bytes(), body)
+                finally:
+                    release.set()
+                    for child in children:
+                        if child.poll() is None:
+                            child.kill()
+                        child.communicate(timeout=60)
+                    server.shutdown()
+                    server.server_close()
+                    thread.join()
 
+    def test_concurrent_metadata_publication_exposes_only_whole_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            children = [subprocess.Popen([os.environ.get("LEAN", "lean"), "--run", "Probe.lean",
+                                          "metadata", tmp, value], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                         text=True) for value in ("a", "b")]
+            reads = 0
+            try:
+                deadline = time.monotonic() + 60
+                while any(child.poll() is None for child in children) and time.monotonic() < deadline:
+                    for path in root.glob("outputs/fixture/*.json"):
+                        data = json.loads(path.read_text())["data"]
+                        self.assertTrue(data == "a" * 65536 or data == "b" * 65536)
+                        reads += 1
+                    time.sleep(0.001)
+                for child in children:
+                    out, err = child.communicate(timeout=60)
+                    self.assertEqual(child.returncode, 0, out + err)
+                self.assertGreater(reads, 0)
+            finally:
+                for child in children:
+                    if child.poll() is None:
+                        child.kill()
+                    child.communicate(timeout=60)
+
+
+@unittest.skipUnless(os.name == "posix", "native workspace fixtures use POSIX permissions")
 class NativeWorkspaces(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = pathlib.Path(self.temp.name)
         self.lake = pathlib.Path(__file__).resolve().parents[2] / ".lake/build/bin/lake"
-        self.env = dict(os.environ, ELAN_HOME=str(pathlib.Path.home() / ".elan"),
-                        ELAN_TOOLCHAIN="leanprover/lean4:v4.36.0-rc2",
+        prefix = pathlib.Path(subprocess.check_output(
+            [os.environ.get("LEAN", "lean"), "--print-prefix"], text=True).strip())
+        self.original = prefix / "bin/lake"
+        elan = self.root / "elan"
+        install = elan / "toolchains/leanprover--lean4---v0.0.0-cache-fixture"
+        install.mkdir(parents=True)
+        # A directory-based fixture distribution uses the current test compiler's
+        # files without requiring an independently downloaded release toolchain.
+        for name in ("bin", "lib", "src", "include", "share"):
+            if (prefix / name).exists():
+                if name == "bin":
+                    (install / name).mkdir()
+                    for binary in (prefix / name).iterdir():
+                        (install / name / binary.name).symlink_to(binary)
+                else:
+                    (install / name).symlink_to(prefix / name, target_is_directory=True)
+        self.install = install
+        self.env = dict(os.environ, ELAN_HOME=str(elan),
+                        ELAN_TOOLCHAIN="leanprover/lean4:v0.0.0-cache-fixture",
+                        LEAN_SYSROOT=str(install), LEAN=str(install / "bin/lean"),
                         LAKE_SHARED_CACHE_ROOT=str(self.root / "shared"),
                         LAKE_CACHE_DIR=str(self.root / "private"),
                         LAKE_SHARED_CACHE_FALLBACK=str(self.root / "private"),
@@ -117,7 +217,7 @@ class NativeWorkspaces(unittest.TestCase):
         self.assertTrue(list((self.root / "private/artifacts").glob("*.olean")))
 
     def test_old_child_retains_private_fallback(self):
-        old = pathlib.Path.home() / ".elan/toolchains/leanprover--lean4---v4.36.0-rc2/bin/lake"
+        old = self.original
         result = self.run_lake(self.first, "env", str(old), "env", "printenv", "LAKE_CACHE_DIR")
         self.assertEqual(result.strip().splitlines()[-1], str(self.root / "private"))
         private = self.run_lake(self.first, "--shared-cache-dir", env=dict(self.env, LAKE_RESTORE_ARTIFACTS="0"))
@@ -128,6 +228,68 @@ class NativeWorkspaces(unittest.TestCase):
         (self.first / "lakefile.lean").write_text(
             'import Lake\nopen Lake DSL\npackage shared_fixture\nlean_lib Example\n')
         self.run_lake(self.first, "env", str(old), "build", "Example")
+
+    def test_cached_configuration_survives_stock_patched_alternation(self):
+        config = '''import Lake
+open Lake DSL
+initialize do
+  let (elan, lean, lake) ← findInstall?
+  let env ← (Env.compute lake.get! lean.get! elan).toIO IO.userError
+  unless env.cacheKey? == some "abi-fixture" do
+    throw <| IO.userError "cached Lake.Env field layout changed"
+  unless env.cacheArtifactEndpoint? == some "https://fixture.invalid" do
+    throw <| IO.userError "cached Lake.Env endpoint field layout changed"
+package shared_fixture
+lean_lib Example
+'''
+        env = dict(self.env, LAKE_CACHE_KEY="abi-fixture",
+                   LAKE_CACHE_ARTIFACT_ENDPOINT="https://fixture.invalid")
+        for project, binaries in ((self.first, (self.original, self.lake, self.original)),
+                                  (self.second, (self.lake, self.original, self.lake))):
+            (project / "lakefile.toml").unlink()
+            (project / "lakefile.lean").write_text(config)
+            timestamp = None
+            for binary in binaries:
+                result = subprocess.run([str(binary), "env", "true"], cwd=project, env=env,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                installed, = (project / ".lake").rglob("lakefile.olean")
+                if timestamp is not None:
+                    self.assertEqual(installed.stat().st_mtime_ns, timestamp)
+                timestamp = installed.stat().st_mtime_ns
+
+    def test_existing_executable_keeps_execute_permission_after_sharing(self):
+        source = self.root / "downloaded-executable"
+        target = self.root / "existing-executable"
+        source.write_bytes(b"#!/bin/sh\nexit 0\n")
+        target.write_bytes(source.read_bytes())
+        target.chmod(0o755)
+        probe = pathlib.Path(__file__).with_name("Probe.lean").resolve()
+        self.run_lake(self.first, "env", "lean", "--run", str(probe), "restore-exe",
+                      str(self.root / "exe-cache"), str(source), str(target))
+        self.assertTrue(os.access(target, os.X_OK))
+        canonical = next((self.root / "exe-cache/artifacts").glob("*.exe"))
+        self.assertEqual(target.stat().st_ino, canonical.stat().st_ino)
+
+    def test_leantar_overwrite_does_not_modify_a_shared_inode(self):
+        env = dict(self.env, LAKE_SHARED_CACHE_ROOT="", LAKE_ARTIFACT_CACHE="0")
+        self.run_lake(self.first, "build", "+Example:ltar", env=env)
+        original = self.first / ".lake/build/lib/lean/Example.olean"
+        canonical = self.root / "canonical.olean"
+        os.link(original, canonical)
+        before = canonical.read_bytes()
+        (self.second / "Example.lean").write_text("module\npublic def changed : Nat := 43\n")
+        self.run_lake(self.second, "build", "+Example:ltar", env=env)
+        archive = self.second / ".lake/build/ir/Example.ltar"
+        result = subprocess.run([str(self.original.with_name("leantar")), "-f", "-x", "-j", "-"],
+                                input=json.dumps([dict(file=str(archive), hash="0123456789abcdef",
+                                                       base=[str(self.first / ".lake/build/lib/lean"),
+                                                             str(self.first / ".lake/build/ir")])]),
+                                cwd=self.first, env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(canonical.read_bytes(), before)
+        self.assertNotEqual(original.read_bytes(), before)
+        self.assertNotEqual(original.stat().st_ino, canonical.stat().st_ino)
 
     def test_up_to_date_private_build_seeds_and_joins_native_store(self):
         private = dict(self.env, LAKE_SHARED_CACHE_ROOT="", LAKE_ARTIFACT_CACHE="0")
@@ -140,14 +302,93 @@ class NativeWorkspaces(unittest.TestCase):
         self.run_lake(self.second, "build", "Example")
         self.assertEqual(first.stat().st_ino, second.stat().st_ino)
 
-    @unittest.skipUnless(os.name == "posix" and shutil.which("cc"), "native link interposition needs cc")
+    def test_unwritable_shared_metadata_uses_private_cache(self):
+        body = b"native fallback artifact"
+        mapping = self.root / "mapping.jsonl"
+        probe = pathlib.Path(__file__).with_name("Probe.lean").resolve()
+        self.run_lake(self.first, "env", "lean", "--run", str(probe), "map", str(mapping), body.decode())
+        selected = pathlib.Path(self.run_lake(self.first, "--shared-cache-dir").strip())
+        outputs = selected / "outputs"
+        outputs.mkdir(exist_ok=True)
+        def permissions(mode):
+            outputs.chmod(mode)
+            for directory in outputs.rglob("*"):
+                if directory.is_dir():
+                    directory.chmod(mode)
+        self.addCleanup(lambda: permissions(0o755))
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                permissions(0o555)
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *_):
+                pass
+
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        config = self.root / "services.toml"
+        config.write_text('[[cache.service]]\nname = "fixture"\nkind = "s3"\n'
+                          f'artifactEndpoint = "http://127.0.0.1:{server.server_port}"\n'
+                          f'revisionEndpoint = "http://127.0.0.1:{server.server_port}"\n')
+        try:
+            self.run_lake(self.first, "cache", "get", str(mapping), "--service", "fixture", "--scope", "fixture", "--wfail",
+                          env=dict(self.env, LAKE_CONFIG=str(config)))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+        payloads = list((self.root / "private/artifacts").glob("*.art"))
+        self.assertEqual(len(payloads), 1)
+        self.assertEqual(payloads[0].read_bytes(), body)
+        self.assertEqual(self.run_lake(self.first, "--shared-cache-dir").strip(), "")
+        self.run_lake(self.first, "build", "Example")
+
+    def test_archive_disappearance_before_unpack_is_a_recoverable_miss(self):
+        mapping = self.root / "outputs.jsonl"
+        self.run_lake(self.first, "build", "+Example", "-o", str(mapping))
+        self.run_lake(self.first, "cache", "add", str(mapping))
+        marker = self.root / "archive-removed"
+        wrapper = self.install / "bin/leantar"
+        wrapper.unlink()
+        wrapper.write_text(f'''#!{sys.executable}
+import json, os, pathlib, subprocess, sys
+original = {str(self.original.with_name("leantar"))!r}
+if "-x" in sys.argv and "-j" in sys.argv:
+    data = sys.stdin.buffer.read()
+    for entry in json.loads(data):
+        path = pathlib.Path(entry["file"])
+        if path.is_relative_to({str(self.root / "shared")!r}):
+            path.unlink()
+            pathlib.Path({str(marker)!r}).touch()
+    raise SystemExit(subprocess.run([original, *sys.argv[1:]], input=data).returncode)
+os.execv(original, [original, *sys.argv[1:]])
+''')
+        wrapper.chmod(0o755)
+        self.run_lake(self.second, "build", "Example")
+        self.assertTrue(marker.exists(), "build did not exercise shared archive unpack")
+        self.assertTrue((self.second / ".lake/build/lib/lean/Example.olean").is_file())
+
+    @unittest.skipUnless(sys.platform.startswith("linux") and shutil.which("cc"), "link interposition needs Linux and cc")
     def test_eviction_after_lookup_is_a_recoverable_miss(self):
+        self.eviction_after_lookup(clear_store=False)
+
+    @unittest.skipUnless(sys.platform.startswith("linux") and shutil.which("cc"), "link interposition needs Linux and cc")
+    def test_clearing_store_during_restore_is_a_recoverable_miss(self):
+        self.eviction_after_lookup(clear_store=True)
+
+    def eviction_after_lookup(self, *, clear_store):
         self.run_lake(self.first, "build", "Example")
         pause = self.root / "pause"
         pause.mkdir()
         library = self.root / "pause.so"
         compile_result = subprocess.run(["cc", "-shared", "-fPIC", "-o", str(library),
-                                         "pause_link.c", "-ldl"], capture_output=True, text=True)
+                                         "pause_link.c", "-ldl"], capture_output=True, text=True,
+                                        env={k: v for k, v in os.environ.items() if k != "LD_LIBRARY_PATH"})
         self.assertEqual(compile_result.returncode, 0, compile_result.stderr)
         env = dict(self.env, LD_PRELOAD=str(library), TEST_CACHE_PREFIX=str(self.root / "shared"),
                    TEST_LINK_PAUSE_DIR=str(pause))
@@ -159,7 +400,10 @@ class NativeWorkspaces(unittest.TestCase):
                 time.sleep(0.01)
             self.assertTrue((pause / "source").exists(), "restore did not enter the controlled race window")
             source = pathlib.Path((pause / "source").read_text())
-            source.unlink()
+            if clear_store:
+                shutil.rmtree(self.root / "shared")
+            else:
+                source.unlink()
         finally:
             (pause / "release").touch()
             output, _ = child.communicate(timeout=60)

@@ -7,6 +7,7 @@ module
 
 prelude
 public import Init.System.IO
+import Init.System.Platform
 
 open System
 
@@ -58,7 +59,16 @@ public def publishFileIfNew (tmp path : FilePath) : IO Unit := do
       handle.write contents
     | e => throw e
 
-/-- Atomically replace a file with complete bytes, or preserve an existing winner. -/
+/-- Publish a completed temporary file, replacing the destination. -/
+public def replaceFile (tmp path : FilePath) : IO Unit := do
+  try IO.FS.rename tmp path catch e =>
+    if System.Platform.isWindows then
+      -- Windows cannot rename over a read-only cache entry. A missing entry is recoverable.
+      removeFileIfExists path
+      IO.FS.rename tmp path
+    else throw e
+
+/-- Publish complete bytes, or preserve an existing winner. Replacement is atomic on POSIX. -/
 public def writeBinFileAtomic
   (path : FilePath) (contents : ByteArray) (overwrite := true) (readOnly exe := false)
 : IO Unit :=
@@ -67,7 +77,7 @@ public def writeBinFileAtomic
     if readOnly then
       let rights := {read := true, write := false, execution := exe}
       IO.setAccessRights tmp ⟨rights, rights, rights⟩
-    if overwrite then IO.FS.rename tmp path else publishFileIfNew tmp path
+    if overwrite then replaceFile tmp path else publishFileIfNew tmp path
 
 /-- Atomically replace a UTF-8 file, or preserve an existing winner. -/
 public def writeFileAtomic (path : FilePath) (contents : String) (overwrite := true) (readOnly := false) : IO Unit :=
