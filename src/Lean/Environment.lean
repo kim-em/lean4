@@ -966,6 +966,15 @@ private def findTaskCore (env : Environment) (n : Name) (skipRealize := false) :
     .pure <| .ofConstantInfo <$> (env.base.get env |>.constants.map₂.find? n)
 
 /--
+Looks up the given declaration name among the imported declarations visible in the current
+exporting mode (see `setExporting`), returning `none` for any declaration of the current module.
+Unlike `findAsync?`, this does not wrap the result in an `AsyncConstantInfo`, which allocates two
+tasks; use it in hot paths that look up many imported constants.
+-/
+@[inline] def findImported? (env : Environment) (n : Name) : Option ConstantInfo :=
+  env.base.get env |>.constants.map₁.findConstCached? n
+
+/--
 Looks up the given declaration name in the environment, avoiding forcing any in-progress elaboration
 tasks unless necessary. This can usually be done efficiently because `addConstAsync` ensures that
 declarations added in an environment branch have that branch's declaration name as a prefix, so we
@@ -981,14 +990,14 @@ Use `findTask` instead if any blocking should be avoided.
 -/
 def findAsync? (env : Environment) (n : Name) (skipRealize := false) : Option AsyncConstantInfo := do
   -- Avoid going through `AsyncConstantInfo` for `base` access
-  if let some c := env.base.get env |>.constants.map₁.findConstCached? n then
+  if let some c := env.findImported? n then
     return .ofConstantInfo c
   findAsyncCore? (skipRealize := skipRealize) env n
 
 /-- Like `findAsync?` but returns a task instead of resorting to blocking. -/
 def findTask (env : Environment) (n : Name) (skipRealize := false) : Task (Option AsyncConstantInfo) := Id.run do
   -- Avoid going through `AsyncConstantInfo` for `base` access
-  if let some c := env.base.get env |>.constants.map₁.findConstCached? n then
+  if let some c := env.findImported? n then
     return .pure <| some <| .ofConstantInfo c
   findTaskCore (skipRealize := skipRealize) env n
 
@@ -998,13 +1007,13 @@ through the result.
 -/
 def findConstVal? (env : Environment) (n : Name) (skipRealize := false) : Option ConstantVal := do
   -- Avoid going through `AsyncConstantInfo` for `base` access
-  if let some c := env.base.get env |>.constants.map₁.findConstCached? n then
+  if let some c := env.findImported? n then
     return c.toConstantVal
   env.findAsyncCore? n (skipRealize := skipRealize) |>.map (·.toConstantVal)
 
 /-- Like `findAsync?`, but blocks until the constant's info is fully available.  -/
 def find? (env : Environment) (n : Name) (skipRealize := false) : Option ConstantInfo := do
-  if let some c := env.base.get env |>.constants.map₁.findConstCached? n then
+  if let some c := env.findImported? n then
     return c
   env.findAsyncCore? n (skipRealize := skipRealize) |>.map (·.toConstantInfo)
 

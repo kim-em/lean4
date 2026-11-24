@@ -76,7 +76,13 @@ This is part of the implementation of `whnf`.
 External users wanting to look up names should be using `Lean.getConstInfo`.
 -/
 def getUnfoldableConst? (constName : Name) : MetaM (Option ConstantInfo) := do
-  let some ainfo := (← getEnv).findAsync? constName | throwUnknownConstantAt (← getRef) constName
+  let env ← getEnv
+  -- Fast path for imported constants, which avoids allocating an `AsyncConstantInfo`
+  if let some info := env.findImported? constName then
+    match info with
+    | .defnInfo _ => if (← canUnfold info) then return info else return none
+    | _ => return none
+  let some ainfo := env.findAsync? constName | throwUnknownConstantAt (← getRef) constName
   match ainfo.kind with
   | .thm => return none
   | .defn => if (← canUnfold ainfo.toConstantInfo) then return ainfo.toConstantInfo else return none
@@ -86,7 +92,14 @@ def getUnfoldableConst? (constName : Name) : MetaM (Option ConstantInfo) := do
 As with `getUnfoldableConst?` but return `none` instead of failing if the constant is not found.
 -/
 def getUnfoldableConstNoEx? (constName : Name) : MetaM (Option ConstantInfo) := do
-  let some ainfo := (← getEnv).findAsync? constName | return none
+  let env ← getEnv
+  -- Fast path for imported constants, which avoids allocating an `AsyncConstantInfo`
+  if let some info := env.findImported? constName then
+    match info with
+    | .defnInfo _ => if (← canUnfold info) then return info else return none
+    | .axiomInfo _ => recordUnfoldAxiom constName; return none
+    | _ => return none
+  let some ainfo := env.findAsync? constName | return none
   match ainfo.kind with
   | .defn => if (← canUnfold ainfo.toConstantInfo) then return ainfo.toConstantInfo else return none
   | .axiom => recordUnfoldAxiom constName; return none
